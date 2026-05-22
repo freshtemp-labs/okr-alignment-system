@@ -129,6 +129,8 @@ final class CoreDataTestStack {
             dateAttr("updatedAt"),
             uuidAttr("cycleId", optional: true),
             uuidAttr("parentId", optional: true),
+            dblAttr("weight", defaultVal: 1.0),
+            int64Attr("version"),
         ]
 
         // ── OKRCycleEntity ─────────────────────────────────────────

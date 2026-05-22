@@ -45,6 +45,12 @@ public final class OKRNodeEntity: NSManagedObject {
     /// 同级排序索引
     @NSManaged public var sortOrder: Int64
 
+    /// 节点权重（用于加权进度计算，默认1.0）
+    @NSManaged public var weight: Double
+
+    /// 乐观锁版本号（用于冲突解决，每次更新自增1）
+    @NSManaged public var version: Int64
+
     /// 创建时间
     @NSManaged public var createdAt: Date
 
@@ -158,6 +164,8 @@ extension OKRNodeEntity {
         sortOrder = Int64(domainModel.sortOrder)
         parentId = domainModel.parentId
         cycleId = domainModel.cycleId
+        weight = domainModel.weight
+        version = Int64(domainModel.version)
 
         // 创建时间只在首次创建时设置
         if createdAt == Date(timeIntervalSince1970: 0) {
@@ -186,6 +194,8 @@ extension OKRNodeEntity {
             parentId: parentId,
             children: [],  // 子节点需要通过单独查询组装
             cycleId: cycleId,
+            weight: weight,
+            version: Int(version),
             createdAt: createdAt,
             updatedAt: updatedAt
         )

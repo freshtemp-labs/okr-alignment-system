@@ -29,6 +29,8 @@ public enum OKRRepositoryError: LocalizedError, Equatable {
     case coreDataError(String)
     /// 映射错误
     case mappingError(String)
+    /// 版本冲突（乐观锁CAS失败）
+    case versionConflict(UUID, expected: Int, actual: Int)
     /// 未知错误
     case unknown
     
@@ -50,6 +52,8 @@ public enum OKRRepositoryError: LocalizedError, Equatable {
             return "数据库错误: \(message)"
         case .mappingError(let message):
             return "数据映射错误: \(message)"
+        case .versionConflict(let id, let expected, let actual):
+            return "节点 \(id) 版本冲突：期望版本 \(expected)，实际版本 \(actual)。请刷新后重试。"
         case .unknown:
             return "未知的数据访问错误"
         }
@@ -65,6 +69,8 @@ public enum OKRRepositoryError: LocalizedError, Equatable {
         case (.duplicateCycleId(let a), .duplicateCycleId(let b)): return a == b
         case (.coreDataError(let a), .coreDataError(let b)): return a == b
         case (.mappingError(let a), .mappingError(let b)): return a == b
+        case (.versionConflict(let id1, let exp1, let act1), .versionConflict(let id2, let exp2, let act2)):
+            return id1 == id2 && exp1 == exp2 && act1 == act2
         case (.unknown, .unknown): return true
         default: return false
         }
@@ -225,19 +231,32 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
         }
     }
     
-    /// 更新现有节点
+    /// 更新现有节点（使用乐观锁CAS冲突解决）
     ///
-    /// 通过ID查找现有节点并更新其所有属性。会递归更新子节点树。
+    /// 通过ID查找现有节点并更新其所有属性。
+    /// 使用compare-and-swap策略：只在版本号匹配时更新，否则抛出冲突错误。
     ///
-    /// - Parameter node: 包含更新数据的节点
-    /// - Returns: 更新后的节点
-    /// - Throws: `OKRRepositoryError.nodeNotFound` 当节点不存在时
+    /// - Parameter node: 包含更新数据的节点（其version字段为期望的当前版本）
+    /// - Returns: 更新后的节点（version已自增）
+    /// - Throws:
+    ///   - `OKRRepositoryError.nodeNotFound` 当节点不存在时
+    ///   - `OKRRepositoryError.versionConflict` 当版本号不匹配时
     public func updateNode(_ node: OKRNode) async throws -> OKRNode {
         let context = writeContext
         
         return try await context.perform {
             guard let existingEntity = try self.fetchNodeEntity(id: node.id, in: context) else {
                 throw OKRRepositoryError.nodeNotFound(node.id)
+            }
+            
+            // Compare-and-swap: 检查版本号是否匹配
+            let currentVersion = Int(existingEntity.version)
+            guard currentVersion == node.version else {
+                throw OKRRepositoryError.versionConflict(
+                    node.id,
+                    expected: node.version,
+                    actual: currentVersion
+                )
             }
             
             do {
@@ -254,6 +273,9 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
                 existingEntity.ownerName = node.ownerName
                 existingEntity.updatedAt = Date()
                 existingEntity.sortOrder = Int64(node.sortOrder)
+                existingEntity.weight = node.weight
+                // 版本号自增（CAS成功后）
+                existingEntity.version = Int64(currentVersion + 1)
                 
                 try context.save()
                 return try EntityToDomainMapper.map(entity: existingEntity)
@@ -529,10 +551,10 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
         context.delete(entity)
     }
     
-    /// 向上级联更新父节点的进度
+    /// 向上级联更新父节点的进度（加权平均）
     ///
     /// 从指定节点开始向上遍历，对每个父节点根据其所有直接子节点的进度
-    /// 重新计算平均值作为新的总进度，并同步更新状态和更新时间。
+    /// 重新计算加权平均值作为新的总进度，并同步更新状态和更新时间。
     ///
     /// - Parameters:
     ///   - entity: 起始节点（已更新的叶子或子节点）
@@ -546,10 +568,22 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
                 continue
             }
             
-            // 计算子节点进度的平均值
-            let averageProgress = children.map(\.progress).reduce(0.0, +) / Double(children.count)
-            parent.progress = averageProgress
-            parent.status = inferStatus(from: averageProgress).rawValue
+            // 计算子节点进度的加权平均值
+            let totalWeight = children.reduce(0.0) { $0 + $1.weight }
+            let weightedProgress: Double
+
+            if totalWeight <= 0 {
+                // 回退到简单平均
+                weightedProgress = children.map(\.progress).reduce(0.0, +) / Double(children.count)
+            } else {
+                let weightedSum = children.reduce(0.0) { result, child in
+                    result + child.progress * child.weight
+                }
+                weightedProgress = weightedSum / totalWeight
+            }
+
+            parent.progress = weightedProgress
+            parent.status = inferStatus(from: weightedProgress).rawValue
             parent.updatedAt = Date()
             
             currentParent = parent.parent

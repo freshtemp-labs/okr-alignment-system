@@ -1,5 +1,6 @@
 import Foundation
 @preconcurrency import CoreData
+import os
 
 // Concurrency-safe merge policy wrapper for Swift 6 strict concurrency
 nonisolated(unsafe) private let _propertyObjectTrumpMergePolicy = NSMergeByPropertyObjectTrumpMergePolicy as! NSMergePolicy
@@ -14,6 +15,33 @@ import CloudKit
 /// - 本地SQLite持久化（生产环境）
 /// - 内存存储（SwiftUI预览和单元测试）
 /// - 可选的CloudKit同步（通过NSPersistentCloudKitContainer）
+///
+/// ## 数据迁移策略
+/// 本控制器使用程序化模型定义（`createManagedObjectModel()`）而非.xcdatamodeld文件。
+/// 当需要添加新属性时，遵循以下迁移策略：
+///
+/// ### 轻量级迁移（Lightweight Migration）
+/// 已通过 `NSMigratePersistentStoresAutomaticallyOption` 和
+/// `NSInferMappingModelAutomaticallyOption` 启用自动轻量级迁移。
+/// 适用于以下变更：
+/// - 添加新的可选属性（isOptional = true 或有 defaultValue）
+/// - 添加新的实体
+/// - 重命名属性（需提供版本化模型和 rename mapping）
+///
+/// ### 需要自定义迁移的场景
+/// 以下变更需要创建 `NSMappingModel` 或使用 `NSEntityMigrationPolicy`：
+/// - 删除属性
+/// - 更改属性类型
+/// - 拆分/合并属性
+/// - 复杂的数据重组
+///
+/// ### 如何添加新属性（示例）
+/// 1. 在 `createManagedObjectModel()` 中添加新的 `NSAttributeDescription`
+/// 2. 确保属性有 `defaultValue` 或 `isOptional = true`（轻量级迁移要求）
+/// 3. 将属性添加到 `nodeEntity.properties` 数组
+/// 4. 在 `OKRNodeEntity+Extensions` 中添加对应的 `@NSManaged` 属性
+/// 5. 更新 `EntityToDomainMapper` 和 `DomainToEntityMapper` 处理映射
+/// 6. 测试轻量级迁移是否成功（旧数据库 → 新模型）
 ///
 /// 线程安全说明：
 /// 所有Core Data操作必须在正确的队列上执行。
@@ -183,7 +211,7 @@ public final class PersistenceController: @unchecked Sendable {
                     let nsError = error as NSError
                     // 记录保存错误但不中断执行流程
                     // 调用方可以通过block自行处理错误
-                    print("后台上下文保存失败: \(nsError), \(nsError.userInfo)")
+                    Logger.app.error("后台上下文保存失败: \(nsError), \(nsError.userInfo)")
                 }
             }
         }
@@ -303,6 +331,18 @@ public final class PersistenceController: @unchecked Sendable {
         parentIdAttr.attributeType = .UUIDAttributeType
         parentIdAttr.isOptional = true
 
+        let weightAttr = NSAttributeDescription()
+        weightAttr.name = "weight"
+        weightAttr.attributeType = .doubleAttributeType
+        weightAttr.isOptional = false
+        weightAttr.defaultValue = 1.0
+
+        let versionAttr = NSAttributeDescription()
+        versionAttr.name = "version"
+        versionAttr.attributeType = .integer64AttributeType
+        versionAttr.isOptional = false
+        versionAttr.defaultValue = Int64(0)
+
         // MARK: OKRCycleEntity (declared early so relationships can reference it)
         let cycleEntity = NSEntityDescription()
         cycleEntity.name = "OKRCycleEntity"
@@ -387,6 +427,7 @@ public final class PersistenceController: @unchecked Sendable {
             ownerNameAttr, sortOrderAttr,
             createdAtAttr, updatedAtAttr,
             nodeCycleIdAttr, parentIdAttr,
+            weightAttr, versionAttr,
             childrenRel, parentRel, cycleRel
         ]
 

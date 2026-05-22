@@ -642,4 +642,58 @@ final class CascadeEngineTests: XCTestCase {
         XCTAssertEqual(result.progress, 100.0, accuracy: 0.001,
             "所有子节点progress为100%时，父节点progress应为100%")
     }
+
+    // MARK: - 测试组6: 加权进度计算
+
+    /// 测试: 不同权重的子节点应正确计算加权平均进度
+    ///
+    /// Arrange: KR1 progress=50 weight=2.0, KR2 progress=100 weight=1.0
+    /// Act: 调用calculateProgress
+    /// Assert: 父节点progress == (50×2 + 100×1) / (2+1) = 66.67
+    func test_weightedProgress_calculatesCorrectly() {
+        // Arrange
+        var child1 = TestDataFactory.createLeafKR(
+            title: "Heavy KR", current: 50, target: 100, unit: "%", owner: "Alice", scope: .personal
+        )
+        child1.weight = 2.0
+        let child2 = TestDataFactory.createLeafKR(
+            title: "Normal KR", current: 100, target: 100, unit: "%", owner: "Alice", scope: .personal
+        )
+        let parent = TestDataFactory.createObjective(
+            title: "Parent O", owner: "Alice", scope: .personal, children: [child1, child2]
+        )
+
+        // Act
+        let result = sut.calculateProgress(for: parent)
+
+        // Assert: (50*2 + 100*1) / (2+1) = 200/3 ≈ 66.67
+        let expected = (50.0 * 2.0 + 100.0 * 1.0) / (2.0 + 1.0)
+        XCTAssertEqual(result.progress, expected, accuracy: 0.01,
+            "加权平均进度应为 \(expected)%")
+    }
+
+    /// 测试: 默认权重(1.0)应退化为简单算术平均
+    ///
+    /// Arrange: 两个子节点progress分别为40%和80%，weight均为1.0
+    /// Act: 调用calculateProgress
+    /// Assert: 父节点progress == 60%（与非加权平均相同）
+    func test_defaultWeight_behavesLikeSimpleAverage() {
+        // Arrange
+        let child1 = TestDataFactory.createLeafKR(
+            title: "KR1", current: 40, target: 100, unit: "%", owner: "Alice", scope: .personal
+        )
+        let child2 = TestDataFactory.createLeafKR(
+            title: "KR2", current: 80, target: 100, unit: "%", owner: "Alice", scope: .personal
+        )
+        let parent = TestDataFactory.createObjective(
+            title: "Parent O", owner: "Alice", scope: .personal, children: [child1, child2]
+        )
+
+        // Act
+        let result = sut.calculateProgress(for: parent)
+
+        // Assert: (40 + 80) / 2 = 60
+        XCTAssertEqual(result.progress, 60.0, accuracy: 0.001,
+            "默认权重1.0应退化为简单算术平均")
+    }
 }

@@ -277,4 +277,51 @@ final class RepositoryTests: XCTestCase {
             XCTAssertEqual(error, .notALeafNode(saved.id))
         }
     }
+
+    // MARK: - Conflict Resolution (CAS)
+
+    func test_updateNode_versionConflict_throwsWhenStale() async throws {
+        let cycle = try await createCycle()
+        let node = makeLeafKR(title: "CAS KR", cycleId: cycle.id)
+        let saved = try await sut.createNode(node)
+
+        // Modify and update once (version 0 → 1)
+        var update1 = saved
+        update1.title = "Updated Once"
+        let result1 = try await sut.updateNode(update1)
+        XCTAssertEqual(result1.title, "Updated Once")
+
+        // Try to update with stale version (still version 0)
+        var staleUpdate = saved
+        staleUpdate.title = "Stale Update"
+        do {
+            _ = try await sut.updateNode(staleUpdate)
+            XCTFail("Expected versionConflict error")
+        } catch let error as OKRRepositoryError {
+            guard case .versionConflict(_, let expected, let actual) = error else {
+                return XCTFail("Expected versionConflict, got \(error)")
+            }
+            XCTAssertEqual(expected, 0)
+            XCTAssertEqual(actual, 1)
+        }
+    }
+
+    func test_updateNode_versionIncrementsOnEachUpdate() async throws {
+        let cycle = try await createCycle()
+        let node = makeLeafKR(title: "Version KR", cycleId: cycle.id)
+        let saved = try await sut.createNode(node)
+        XCTAssertEqual(saved.version, 0, "New node should start at version 0")
+
+        // First update
+        var update1 = saved
+        update1.title = "V1"
+        let r1 = try await sut.updateNode(update1)
+        XCTAssertEqual(r1.version, 1, "After first update, version should be 1")
+
+        // Second update
+        var update2 = r1
+        update2.title = "V2"
+        let r2 = try await sut.updateNode(update2)
+        XCTAssertEqual(r2.version, 2, "After second update, version should be 2")
+    }
 }

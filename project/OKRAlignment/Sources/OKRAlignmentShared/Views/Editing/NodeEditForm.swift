@@ -68,6 +68,7 @@ public struct NodeEditForm: View {
     @State private var unit: String? = "%"
     @State private var status: NodeStatus = .notStarted
     @State private var selectedParentId: UUID?
+    @State private var weight: Double = 1.0
     @State private var titleError: String? = nil
     @State private var ownerError: String? = nil
     @State private var isSaving: Bool = false
@@ -265,6 +266,21 @@ public struct NodeEditForm: View {
                     .accessibilityLabel("Node status")
                 }
                 
+                // Weight slider
+                formField(title: "Weight (for progress calculation)") {
+                    HStack(spacing: 12) {
+                        Slider(value: $weight, in: 0.1...10.0, step: 0.1)
+                            .accessibilityLabel("Node weight")
+                        Text(String(format: "%.1f", weight))
+                            .font(.system(size: 14, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, alignment: .trailing)
+                    }
+                    Text("Higher weight means this node has more influence on the parent's progress.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(labelColor.opacity(0.7))
+                }
+                
                 // Parent selector
                 if !availableParents.isEmpty {
                     formField(title: "Parent (Optional)") {
@@ -429,6 +445,7 @@ public struct NodeEditForm: View {
         unit = node.unit
         status = node.status
         selectedParentId = node.parentId
+        weight = node.weight
     }
     
     // MARK: - Save
@@ -464,6 +481,7 @@ public struct NodeEditForm: View {
             parentId: selectedParentId,
             children: [], // Children are managed separately
             cycleId: nil,
+            weight: weight,
             createdAt: createdAt,
             updatedAt: now
         )

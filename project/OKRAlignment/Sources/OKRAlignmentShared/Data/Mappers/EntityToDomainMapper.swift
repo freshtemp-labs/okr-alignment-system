@@ -81,6 +81,8 @@ enum EntityToDomainMapper {
             parentId: parentId,
             children: mappedChildren,
             cycleId: cycleId,
+            weight: entity.weight,
+            version: Int(entity.version),
             createdAt: entity.createdAt,
             updatedAt: entity.updatedAt
         )

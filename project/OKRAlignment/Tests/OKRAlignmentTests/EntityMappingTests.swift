@@ -129,6 +129,8 @@ final class EntityMappingTests: XCTestCase {
         XCTAssertEqual(domain.sortOrder, 3)
         XCTAssertEqual(domain.parentId, parentId)
         XCTAssertEqual(domain.cycleId, cycleId)
+        XCTAssertEqual(domain.weight, 1.0, accuracy: 0.001)
+        XCTAssertEqual(domain.version, 0)
     }
 
     func test_entityToDomain_withChildren_recursiveMapping() throws {
@@ -230,6 +232,8 @@ final class EntityMappingTests: XCTestCase {
         XCTAssertEqual(entity.ownerName, "Charlie")
         XCTAssertEqual(entity.sortOrder, 5)
         XCTAssertEqual(entity.cycle?.id, cycleEntity.id)
+        XCTAssertEqual(entity.weight, 1.0, accuracy: 0.001)
+        XCTAssertEqual(entity.version, 0)
     }
 
     func test_domainToEntity_cycleNotFound_throws() {

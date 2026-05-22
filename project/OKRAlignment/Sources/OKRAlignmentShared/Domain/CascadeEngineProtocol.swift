@@ -10,7 +10,7 @@ import Foundation
 ///
 /// # 级联计算规则概述
 /// - **叶子KR节点**: progress = (currentValue / targetValue) × 100
-/// - **有子节点的父节点**: progress = 所有子节点progress的平均值
+/// - **有子节点的父节点**: progress = 所有子节点progress的加权平均值（权重为weight字段）
 /// - **无子节点的Objective节点**: progress = 0
 ///
 /// # 使用场景

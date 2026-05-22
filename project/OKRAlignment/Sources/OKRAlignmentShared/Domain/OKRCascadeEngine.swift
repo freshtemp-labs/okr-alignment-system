@@ -22,11 +22,12 @@ import Foundation
 /// ```
 /// 当targetValue <= 0时，progress = 0（除零保护）
 ///
-/// ## 规则2 - 有子节点的父节点
+/// ## 规则2 - 有子节点的父节点（加权平均）
 /// ```
 /// 先递归计算所有子节点
-/// progress = sum(子节点.progress) / 子节点数量
+/// progress = sum(子节点.progress × 子节点.weight) / sum(子节点.weight)
 /// ```
+/// 当所有子节点的weight均为默认值1.0时，退化为简单算术平均。
 ///
 /// ## 规则3 - 无子节点的Objective节点
 /// ```progress = 0```
@@ -194,58 +195,51 @@ public struct OKRCascadeEngine: CascadeEngineProtocol, Sendable {
 
     /// 计算有子节点的父节点的进度
     /// -------------------------
-    /// 规则2实现: 先递归计算所有子节点，progress = 子节点平均值
+    /// 规则2实现: 先递归计算所有子节点，progress = 加权平均值
     ///
     /// # 计算细节：
     /// 1. 对当前节点的每个子节点递归调用calculateProgress
-    /// 2. 收集所有子节点计算后的progress值
-    /// 3. progress = sum(子节点progress) / 子节点数量
+    /// 2. 收集所有子节点计算后的progress值和weight值
+    /// 3. progress = sum(子节点progress × 子节点weight) / sum(子节点weight)
     /// 4. 更新当前节点的progress和children数组
+    ///
+    /// 当所有子节点的weight均为默认值1.0时，退化为简单算术平均。
     ///
     /// - Parameter node: 有子节点的父节点
     /// - Returns: 包含更新后progress和递归更新后子节点的新节点
     private func calculateParentProgress(node: OKRNode) -> OKRNode {
         // ===== 步骤1: 递归计算所有子节点 =====
-        // 对每个子节点调用calculateProgress进行递归计算
-        // 这会确保子树中的所有节点progress都是最新的
         let calculatedChildren = node.children.map { child in
-            // 递归调用：对子节点应用相同的计算逻辑
-            // 如果子节点也有子节点，会继续向下递归直到叶子节点
             calculateProgress(for: child)
         }
 
-        // ===== 步骤2: 收集所有子节点的progress值 =====
-        // 从已计算的子节点中提取progress值
-        let childProgressValues = calculatedChildren.map { $0.progress }
+        // ===== 步骤2: 计算加权平均值 =====
+        // progress = sum(子节点progress × 子节点weight) / sum(子节点weight)
+        // 当所有weight为1.0时，退化为 sum(progress) / count
+        let weightedProgress: Double
+        let totalWeight = calculatedChildren.reduce(0.0) { $0 + $1.weight }
 
-        // ===== 步骤3: 计算平均值 =====
-        // progress = 所有子节点progress之和 / 子节点数量
-        // 例如: 3个子节点的progress分别为[60, 80, 100]
-        // 则父节点的progress = (60 + 80 + 100) / 3 = 80.0
-        let averageProgress: Double
-        if childProgressValues.isEmpty {
-            // 防御性编程：理论上不应到达此处（已在调用前检查children非空）
-            // 如果没有子节点，进度设为0
-            averageProgress = 0.0
-        } else {
-            // 计算子节点progress的算术平均值
+        if totalWeight <= 0 {
+            // 防御性编程：所有权重为0时，回退到简单平均
+            let childProgressValues = calculatedChildren.map { $0.progress }
             let sum = childProgressValues.reduce(0.0, +)
-            averageProgress = sum / Double(childProgressValues.count)
+            weightedProgress = childProgressValues.isEmpty ? 0.0 : sum / Double(childProgressValues.count)
+        } else {
+            let weightedSum = calculatedChildren.reduce(0.0) { result, child in
+                result + child.progress * child.weight
+            }
+            weightedProgress = weightedSum / totalWeight
         }
 
-        // ===== 步骤4: 限制结果在有效范围内 =====
-        // 确保结果在[0, 100]范围内（防止浮点误差导致越界）
-        let clampedProgress = min(max(averageProgress, 0.0), 100.0)
+        // ===== 步骤3: 限制结果在有效范围内 =====
+        let clampedProgress = min(max(weightedProgress, 0.0), 100.0)
 
-        // ===== 步骤5: 构建更新后的节点 =====
-        // 创建新的节点副本，包含：
-        // - 计算后的progress
-        // - 已递归更新的子节点数组
+        // ===== 步骤4: 构建更新后的节点 =====
         var updatedNode = node
         updatedNode.progress = clampedProgress
         updatedNode.children = calculatedChildren
 
-        // ===== 步骤6: 返回更新后的节点 =====
+        // ===== 步骤5: 返回更新后的节点 =====
         return updatedNode
     }
 
@@ -327,12 +321,24 @@ public struct OKRCascadeEngine: CascadeEngineProtocol, Sendable {
         // ===== 步骤4: 如果子树中找到了目标叶子，重新计算当前父节点 =====
         if foundAndUpdated {
             // 子树中有叶子被更新 → 需要重新计算当前父节点的progress
-            // 使用规则2: 子节点progress的平均值
-            let childProgressValues = updatedChildren.map { $0.progress }
-            let sum = childProgressValues.reduce(0.0, +)
-            let averageProgress = sum / Double(childProgressValues.count)
+            // 使用规则2: 子节点progress的加权平均值
+            let totalWeight = updatedChildren.reduce(0.0) { $0 + $1.weight }
+            let weightedProgress: Double
+
+            if totalWeight <= 0 {
+                // 防御性编程：所有权重为0时，回退到简单平均
+                let childProgressValues = updatedChildren.map { $0.progress }
+                let sum = childProgressValues.reduce(0.0, +)
+                weightedProgress = childProgressValues.isEmpty ? 0.0 : sum / Double(childProgressValues.count)
+            } else {
+                let weightedSum = updatedChildren.reduce(0.0) { result, child in
+                    result + child.progress * child.weight
+                }
+                weightedProgress = weightedSum / totalWeight
+            }
+
             // 限制在有效范围
-            let clampedProgress = min(max(averageProgress, 0.0), 100.0)
+            let clampedProgress = min(max(weightedProgress, 0.0), 100.0)
 
             // 构建更新后的父节点
             var updatedNode = node

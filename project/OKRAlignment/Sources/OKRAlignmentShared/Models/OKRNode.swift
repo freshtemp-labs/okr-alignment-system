@@ -63,6 +63,15 @@ public struct OKRNode: Identifiable, Equatable, Hashable, Sendable {
     /// 所属周期ID（必须关联到一个OKR周期）
     public var cycleId: UUID?
 
+    /// 节点权重（用于加权进度计算，默认1.0）
+    /// 权重越大，该节点对父节点进度的影响越大
+    /// 例如：权重为2.0的KR对父节点进度的贡献是权重1.0的两倍
+    public var weight: Double
+
+    /// 乐观锁版本号（用于冲突解决）
+    /// 每次成功更新时自增1，用于compare-and-swap并发控制
+    public var version: Int
+
     // MARK: - Computed Properties
 
     /// 是否为叶子KR节点（无子节点且类型为KR）
@@ -74,6 +83,11 @@ public struct OKRNode: Identifiable, Equatable, Hashable, Sendable {
     /// 是否为根节点（无父节点）
     public var isRoot: Bool {
         parentId == nil
+    }
+
+    /// 是否为权重已设置（非默认值）
+    public var hasCustomWeight: Bool {
+        weight != 1.0
     }
 
     /// 格式化后的进度百分比字符串
@@ -152,6 +166,8 @@ public struct OKRNode: Identifiable, Equatable, Hashable, Sendable {
         parentId: UUID? = nil,
         children: [OKRNode] = [],
         cycleId: UUID? = nil,
+        weight: Double = 1.0,
+        version: Int = 0,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -182,6 +198,8 @@ public struct OKRNode: Identifiable, Equatable, Hashable, Sendable {
         self.parentId = parentId
         self.children = children
         self.cycleId = cycleId
+        self.weight = weight
+        self.version = version
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -201,6 +219,8 @@ public struct OKRNode: Identifiable, Equatable, Hashable, Sendable {
             && lhs.targetValue == rhs.targetValue
             && lhs.ownerName == rhs.ownerName
             && lhs.children == rhs.children
+            && lhs.weight == rhs.weight
+            && lhs.version == rhs.version
     }
 }
 
