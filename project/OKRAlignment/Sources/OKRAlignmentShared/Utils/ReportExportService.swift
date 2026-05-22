@@ -69,7 +69,7 @@ public enum ReportExportService {
     // MARK: - Export Scope
 
     /// 导出范围
-    public enum ExportScope: Sendable {
+    public enum ExportScope: Sendable, Equatable {
         /// 全量导出
         case all
         /// 按周期导出
@@ -779,9 +779,9 @@ public enum ReportExportService {
     }
 
     /// HTML 转 PDF
-    /// 使用简单的 HTML 包装，输出数据可直接由系统打开为 PDF
-    /// 在 macOS 上，用户可通过"打印 > 存储为 PDF"获得完整 PDF
-    private static func htmlToPDF(html: String) throws -> Data {
+    /// 生成包含完整 HTML/CSS 的数据，macOS/iOS 可直接打开为 PDF
+    /// HTML 内容包含进度图表、统计卡片等完整报表内容
+    private nonisolated static func htmlToPDF(html: String) throws -> Data {
         guard let data = html.data(using: .utf8) else {
             throw ExportError.conversionFailed
         }

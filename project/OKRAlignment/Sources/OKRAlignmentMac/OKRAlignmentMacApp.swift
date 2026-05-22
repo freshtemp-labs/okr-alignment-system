@@ -86,9 +86,15 @@ struct OKRAlignmentMacApp: App {
                     }
 
                     NavigationLink {
-                        DataMigrationView()
+                        DataManagementView()
                     } label: {
                         Label("settings.dataManagement".localized, systemImage: "internaldrive")
+                    }
+
+                    NavigationLink {
+                        NotificationSettingsView(notificationService: NotificationService())
+                    } label: {
+                        Label("settings.notification".localized, systemImage: "bell.badge")
                     }
                 }
                 .listStyle(.sidebar)

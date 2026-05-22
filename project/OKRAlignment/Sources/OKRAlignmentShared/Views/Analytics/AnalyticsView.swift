@@ -36,6 +36,9 @@ public struct AnalyticsView: View {
     /// 是否显示报表预览
     @State private var showPreview = false
 
+    /// 是否显示导出对话框
+    @State private var showExportDialog = false
+
     /// 撤销/重做管理器
     @StateObject private var undoRedoManager = UndoRedoManager.shared
 
@@ -163,14 +166,12 @@ public struct AnalyticsView: View {
                 .tooltip("预览当前报表配置的导出效果")
 
                 // 导出按钮
-                Menu {
-                    Button("导出 PDF", systemImage: "doc.richtext") { }
-                    Button("导出 CSV", systemImage: "tablecells") { }
-                    Button("导出 JSON", systemImage: "doc.text") { }
+                Button {
+                    showExportDialog = true
                 } label: {
                     Label("导出", systemImage: "square.and.arrow.up")
                 }
-                .tooltip("导出当前报表")
+                .tooltip("导出当前报表为 PDF/Excel/JSON/CSV")
             }
         }
         .task {
@@ -182,6 +183,13 @@ public struct AnalyticsView: View {
                 statistics: viewModel.statistics,
                 statusDistribution: viewModel.statusDistribution,
                 ownerRankings: viewModel.ownerRankings
+            )
+        }
+        .sheet(isPresented: $showExportDialog) {
+            ExportDialogView(
+                cycles: [],
+                trees: [:],
+                isPresented: $showExportDialog
             )
         }
         .animation(.easeInOut(duration: 0.2), value: showFilterPanel)

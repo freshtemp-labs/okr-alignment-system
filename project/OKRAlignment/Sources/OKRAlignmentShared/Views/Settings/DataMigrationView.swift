@@ -58,7 +58,7 @@ public struct DataMigrationView: View {
             HStack {
                 Text("最新数据版本")
                 Spacer()
-                Text("v3")
+                Text("v4")
                     .foregroundStyle(.secondary)
             }
             HStack {

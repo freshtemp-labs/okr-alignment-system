@@ -8,6 +8,7 @@ import os
 /// ==============
 /// 提供从旧版本数据格式迁移到新版本的功能。
 /// 支持版本检测、自动迁移、进度报告和回滚。
+/// 支持数据完整性检查和存储统计。
 ///
 /// # 迁移策略
 /// - 版本号存储在 UserDefaults 中
@@ -22,6 +23,10 @@ import os
 ///     let result = await service.performMigration()
 ///     print(result.message)
 /// }
+/// // 数据完整性检查
+/// let integrity = await service.checkDataIntegrity()
+/// // 存储统计
+/// let stats = service.getStorageStatistics()
 /// ```
 @MainActor
 public final class DataMigrationService: ObservableObject {
@@ -92,7 +97,7 @@ public final class DataMigrationService: ObservableObject {
     private let persistenceController: PersistenceController
 
     /// 当前数据版本
-    private let currentDataVersion = 3
+    private let currentDataVersion = 4
 
     /// UserDefaults 中版本号的 key
     private let versionKey = "okr_data_schema_version"
@@ -128,6 +133,13 @@ public final class DataMigrationService: ObservableObject {
                 description: "添加归档(isArchived)字段到周期"
             ) { context in
                 try DataMigrationService.migrateV2toV3(context: context)
+            },
+            MigrationStep(
+                fromVersion: 3,
+                toVersion: 4,
+                description: "添加优先级(priority)和标签(tags)字段"
+            ) { context in
+                try DataMigrationService.migrateV3toV4(context: context)
             }
         ]
     }
@@ -351,6 +363,23 @@ public final class DataMigrationService: ObservableObject {
         }
     }
 
+    /// V3 → V4: 添加 priority 和 tags 字段到节点
+    private static func migrateV3toV4(context: NSManagedObjectContext) throws {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "OKRNodeEntity")
+        let nodes = try context.fetch(request)
+
+        for node in nodes {
+            // 设置默认优先级 (0=普通, 1=高, 2=紧急)
+            if node.value(forKey: "priority") == nil {
+                node.setValue(Int64(0), forKey: "priority")
+            }
+            // 设置默认标签 (空字符串)
+            if node.value(forKey: "tags") == nil {
+                node.setValue("", forKey: "tags")
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     /// 创建数据备份
@@ -382,6 +411,283 @@ public final class DataMigrationService: ObservableObject {
         let cycleCount = try context.count(for: cycleRequest)
 
         return (nodeCount, cycleCount)
+    }
+
+    // MARK: - Data Integrity
+
+    /// 数据完整性检查结果
+    public struct IntegrityCheckResult: Sendable {
+        /// 是否通过检查
+        public let isHealthy: Bool
+        /// 发现的问题列表
+        public let issues: [IntegrityIssue]
+        /// 检查的实体总数
+        public let totalEntitiesChecked: Int
+        /// 检查耗时
+        public let duration: TimeInterval
+
+        /// 摘要信息
+        public var summary: String {
+            if isHealthy {
+                return "数据完整性检查通过，共检查 \(totalEntitiesChecked) 条记录"
+            } else {
+                return "发现 \(issues.count) 个问题，请检查详情"
+            }
+        }
+    }
+
+    /// 完整性问题
+    public struct IntegrityIssue: Identifiable, Sendable {
+        public let id = UUID()
+        /// 严重程度
+        public let severity: Severity
+        /// 问题描述
+        public let description: String
+        /// 涉及的实体类型
+        public let entityType: String
+        /// 涉及的实体ID
+        public let entityId: String?
+
+        public enum Severity: String, Sendable {
+            case warning = "警告"
+            case error = "错误"
+            case critical = "严重"
+
+            public var iconName: String {
+                switch self {
+                case .warning: return "exclamationmark.triangle"
+                case .error: return "xmark.circle"
+                case .critical: return "exclamationmark.octagon"
+                }
+            }
+        }
+    }
+
+    /// 执行数据完整性检查
+    public func checkDataIntegrity() async -> IntegrityCheckResult {
+        let startTime = Date()
+        var issues: [IntegrityIssue] = []
+        var totalChecked = 0
+
+        let context = persistenceController.newBackgroundContext()
+        await context.perform {
+            // 检查节点完整性
+            let nodeRequest = NSFetchRequest<NSManagedObject>(entityName: "OKRNodeEntity")
+            do {
+                let nodes = try context.fetch(nodeRequest)
+                totalChecked += nodes.count
+
+                for node in nodes {
+                    let nodeId = (node.value(forKey: "id") as? UUID)?.uuidString ?? "unknown"
+
+                    // 检查标题是否为空
+                    if let title = node.value(forKey: "title") as? String, title.trimmingCharacters(in: .whitespaces).isEmpty {
+                        issues.append(IntegrityIssue(
+                            severity: .error,
+                            description: "节点标题为空",
+                            entityType: "OKRNodeEntity",
+                            entityId: nodeId
+                        ))
+                    }
+
+                    // 检查进度范围
+                    let progress = node.value(forKey: "progress") as? Double ?? 0
+                    if progress < 0 || progress > 100 {
+                        issues.append(IntegrityIssue(
+                            severity: .warning,
+                            description: "进度值超出范围 (0-100): \(progress)",
+                            entityType: "OKRNodeEntity",
+                            entityId: nodeId
+                        ))
+                    }
+
+                    // 检查目标值
+                    let targetValue = node.value(forKey: "targetValue") as? Double ?? 0
+                    if targetValue <= 0 {
+                        issues.append(IntegrityIssue(
+                            severity: .warning,
+                            description: "目标值为零或负数: \(targetValue)",
+                            entityType: "OKRNodeEntity",
+                            entityId: nodeId
+                        ))
+                    }
+
+                    // 检查父节点引用有效性
+                    if let parentId = node.value(forKey: "parentId") as? UUID {
+                        let parentRequest = NSFetchRequest<NSManagedObject>(entityName: "OKRNodeEntity")
+                        parentRequest.predicate = NSPredicate(format: "id == %@", parentId as CVarArg)
+                        let parentCount = try context.count(for: parentRequest)
+                        if parentCount == 0 {
+                            issues.append(IntegrityIssue(
+                                severity: .critical,
+                                description: "引用了不存在的父节点: \(parentId.uuidString)",
+                                entityType: "OKRNodeEntity",
+                                entityId: nodeId
+                            ))
+                        }
+                    }
+                }
+            } catch {
+                issues.append(IntegrityIssue(
+                    severity: .critical,
+                    description: "无法读取节点数据: \(error.localizedDescription)",
+                    entityType: "OKRNodeEntity",
+                    entityId: nil
+                ))
+            }
+
+            // 检查周期完整性
+            let cycleRequest = NSFetchRequest<NSManagedObject>(entityName: "OKRCycleEntity")
+            do {
+                let cycles = try context.fetch(cycleRequest)
+                totalChecked += cycles.count
+
+                for cycle in cycles {
+                    let cycleId = (cycle.value(forKey: "id") as? UUID)?.uuidString ?? "unknown"
+
+                    // 检查周期名称
+                    if let name = cycle.value(forKey: "name") as? String, name.trimmingCharacters(in: .whitespaces).isEmpty {
+                        issues.append(IntegrityIssue(
+                            severity: .error,
+                            description: "周期名称为空",
+                            entityType: "OKRCycleEntity",
+                            entityId: cycleId
+                        ))
+                    }
+
+                    // 检查日期范围
+                    if let startDate = cycle.value(forKey: "startDate") as? Date,
+                       let endDate = cycle.value(forKey: "endDate") as? Date {
+                        if startDate >= endDate {
+                            issues.append(IntegrityIssue(
+                                severity: .error,
+                                description: "开始日期晚于或等于结束日期",
+                                entityType: "OKRCycleEntity",
+                                entityId: cycleId
+                            ))
+                        }
+                    }
+                }
+            } catch {
+                issues.append(IntegrityIssue(
+                    severity: .critical,
+                    description: "无法读取周期数据: \(error.localizedDescription)",
+                    entityType: "OKRCycleEntity",
+                    entityId: nil
+                ))
+            }
+        }
+
+        let duration = Date().timeIntervalSince(startTime)
+        return IntegrityCheckResult(
+            isHealthy: issues.isEmpty,
+            issues: issues,
+            totalEntitiesChecked: totalChecked,
+            duration: duration
+        )
+    }
+
+    // MARK: - Storage Statistics
+
+    /// 存储统计信息
+    public struct StorageStatistics: Sendable {
+        /// 数据库文件大小（字节）
+        public let databaseSize: Int64
+        /// 备份文件总大小（字节）
+        public let backupSize: Int64
+        /// 节点总数
+        public let nodeCount: Int
+        /// 周期总数
+        public let cycleCount: Int
+        /// 评论总数
+        public let commentCount: Int
+        /// 格式化的数据库大小
+        public var formattedDatabaseSize: String {
+            formatBytes(databaseSize)
+        }
+        /// 格式化的备份大小
+        public var formattedBackupSize: String {
+            formatBytes(backupSize)
+        }
+        /// 格式化的总大小
+        public var formattedTotalSize: String {
+            formatBytes(databaseSize + backupSize)
+        }
+
+        private func formatBytes(_ bytes: Int64) -> String {
+            if bytes < 1024 { return "\(bytes) B" }
+            if bytes < 1024 * 1024 { return String(format: "%.1f KB", Double(bytes) / 1024.0) }
+            if bytes < 1024 * 1024 * 1024 { return String(format: "%.1f MB", Double(bytes) / (1024.0 * 1024.0)) }
+            return String(format: "%.2f GB", Double(bytes) / (1024.0 * 1024.0 * 1024.0))
+        }
+    }
+
+    /// 获取存储统计信息
+    public func getStorageStatistics() -> StorageStatistics {
+        let fileManager = FileManager.default
+        var databaseSize: Int64 = 0
+        var backupSize: Int64 = 0
+        var nodeCount = 0
+        var cycleCount = 0
+        var commentCount = 0
+
+        // 计算数据库大小
+        if let storeURL = persistenceController.container
+            .persistentStoreCoordinator
+            .persistentStores.first?.url {
+            // 计算主数据库及相关文件大小
+            let relatedExtensions = ["", "-wal", "-shm", "-journal"]
+            for ext in relatedExtensions {
+                let fileURL: URL
+                if ext.isEmpty {
+                    fileURL = storeURL
+                } else {
+                    fileURL = storeURL.appendingPathExtension(ext)
+                }
+                if let attrs = try? fileManager.attributesOfItem(atPath: fileURL.path),
+                   let size = attrs[.size] as? Int64 {
+                    databaseSize += size
+                }
+            }
+        }
+
+        // 计算备份文件大小
+        if let storeURL = persistenceController.container
+            .persistentStoreCoordinator
+            .persistentStores.first?.url {
+            let backupDir = storeURL.deletingLastPathComponent()
+            if let files = try? fileManager.contentsOfDirectory(
+                at: backupDir,
+                includingPropertiesForKeys: [.fileSizeKey],
+                options: .skipsHiddenFiles
+            ) {
+                for file in files where file.lastPathComponent.hasPrefix("OKRAlignment_backup_") {
+                    if let attrs = try? fileManager.attributesOfItem(atPath: file.path),
+                       let size = attrs[.size] as? Int64 {
+                        backupSize += size
+                    }
+                }
+            }
+        }
+
+        // 统计实体数量
+        let context = persistenceController.container.viewContext
+        let nodeRequest = NSFetchRequest<NSManagedObject>(entityName: "OKRNodeEntity")
+        nodeCount = (try? context.count(for: nodeRequest)) ?? 0
+
+        let cycleRequest = NSFetchRequest<NSManagedObject>(entityName: "OKRCycleEntity")
+        cycleCount = (try? context.count(for: cycleRequest)) ?? 0
+
+        let commentRequest = NSFetchRequest<NSManagedObject>(entityName: "CommentEntity")
+        commentCount = (try? context.count(for: commentRequest)) ?? 0
+
+        return StorageStatistics(
+            databaseSize: databaseSize,
+            backupSize: backupSize,
+            nodeCount: nodeCount,
+            cycleCount: cycleCount,
+            commentCount: commentCount
+        )
     }
 }
 
