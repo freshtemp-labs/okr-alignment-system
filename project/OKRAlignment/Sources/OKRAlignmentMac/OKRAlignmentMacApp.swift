@@ -14,21 +14,14 @@ import OKRAlignmentShared
 /// - 最小窗口尺寸: 900x600
 /// - 默认外观: 深色模式
 ///
-/// # 架构说明
-/// 应用通过共享模块`OKRAlignmentShared`获取所有业务逻辑和视图组件，
-/// 本模块仅包含macOS平台特定的入口代码和窗口配置。
+/// # 快捷键
+/// - Cmd+N: 新建 Objective
+/// - Cmd+F: 搜索
+/// - Delete: 删除选中节点
+/// - Escape: 关闭弹窗
+/// - Cmd+R: 刷新
+/// - Cmd+E: 编辑
 ///
-/// ## 使用示例
-/// ```swift
-/// @main
-/// struct OKRAlignmentMacApp: App {
-///     var body: some Scene {
-///         WindowGroup {
-///             MacTreeView()
-///         }
-///     }
-/// }
-/// ```
 @main
 struct OKRAlignmentMacApp: App {
 
@@ -38,13 +31,11 @@ struct OKRAlignmentMacApp: App {
     /// 在应用启动时执行一次性的设置操作
     init() {
         // 设置深色模式为默认外观
-        // 通过NSApp的appearance代理强制使用深色外观
         if let window = NSApplication.shared.mainWindow {
             window.appearance = NSAppearance(named: .darkAqua)
         }
 
         // 注册默认用户偏好设置
-        // 确保首次启动时应用使用深色主题
         UserDefaults.standard.register(defaults: [
             "AppleInterfaceStyle": "Dark"
         ])
@@ -73,8 +64,6 @@ struct OKRAlignmentMacApp: App {
         // MARK: 设置窗口（可选）
         #if os(macOS)
         Settings {
-            // 应用设置面板
-            // 可扩展为包含主题选择、数据同步配置等
             Text("Settings")
                 .frame(width: 400, height: 300)
         }
@@ -93,8 +82,6 @@ struct OKRMenuCommands: Commands {
         // 替换标准新建文件菜单
         CommandGroup(replacing: .newItem) {
             Button("New OKR Node") {
-                // 发送新建节点通知
-                // 由MacTreeView监听并响应
                 NotificationCenter.default.post(
                     name: Notification.Name(rawValue: "CreateNewNode"),
                     object: nil
@@ -103,10 +90,30 @@ struct OKRMenuCommands: Commands {
             .keyboardShortcut("n", modifiers: .command)
         }
 
-        // 添加刷新命令到视图菜单
+        // 添加编辑菜单
+        CommandMenu("Edit") {
+            Button("Search OKRs") {
+                NotificationCenter.default.post(
+                    name: Notification.Name(rawValue: "FocusSearch"),
+                    object: nil
+                )
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            
+            Divider()
+            
+            Button("Delete Selected") {
+                NotificationCenter.default.post(
+                    name: Notification.Name(rawValue: "DeleteSelectedNode"),
+                    object: nil
+                )
+            }
+            .keyboardShortcut(.delete, modifiers: [])
+        }
+
+        // 添加视图菜单
         CommandMenu("View") {
             Button("Refresh Tree") {
-                // 发送刷新树通知
                 NotificationCenter.default.post(
                     name: Notification.Name(rawValue: "RefreshTree"),
                     object: nil
@@ -132,6 +139,25 @@ struct OKRMenuCommands: Commands {
             }
             .keyboardShortcut("c", modifiers: [.command, .option])
         }
+        
+        // 数据菜单
+        CommandMenu("Data") {
+            Button("Export as CSV...") {
+                NotificationCenter.default.post(
+                    name: Notification.Name(rawValue: "ExportCSV"),
+                    object: nil
+                )
+            }
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+            
+            Button("Export as JSON...") {
+                NotificationCenter.default.post(
+                    name: Notification.Name(rawValue: "ExportJSON"),
+                    object: nil
+                )
+            }
+            .keyboardShortcut("j", modifiers: [.command, .shift])
+        }
     }
 }
 
@@ -144,11 +170,9 @@ import AppKit
 /// 用于限制用户调整窗口时的最小尺寸，确保UI元素不被过度压缩
 extension OKRAlignmentMacApp {
     /// 应用窗口的最小宽度（像素）
-    /// 低于此宽度时树状视图将无法正常显示
     static let minWindowWidth: CGFloat = 900
 
     /// 应用窗口的最小高度（像素）
-    /// 低于此高度时详情面板将无法正常显示
     static let minWindowHeight: CGFloat = 600
 }
 #endif

@@ -10,18 +10,9 @@ import OKRAlignmentShared
 /// - Selection state with highlighted active cycle
 /// - New cycle creation button at the bottom
 /// - Search/filter functionality for cycles
+/// - Export button
+/// - Cycle status color indicators
 ///
-/// The sidebar uses the standard macOS sidebar appearance with custom styling
-/// for the dark theme.
-///
-/// ## Example
-/// ```swift
-/// SidebarView(
-///     cycles: viewModel.cycles,
-///     selectedCycleId: $viewModel.selectedCycleId,
-///     onCreateCycle: { showCreateSheet = true }
-/// )
-/// ```
 public struct SidebarView: View {
     // MARK: - Properties
     
@@ -37,8 +28,23 @@ public struct SidebarView: View {
     /// Callback when a cycle is deleted.
     let onDeleteCycle: (UUID) -> Void
     
+    /// Callback when a cycle is archived (with confirmation).
+    let onArchiveCycle: ((UUID) -> Void)?
+    
+    /// Callback when a cycle is activated.
+    let onActivateCycle: ((UUID) -> Void)?
+    
+    /// Callback when the export button is tapped.
+    let onExport: (() -> Void)?
+    
     /// Search text for filtering cycles.
     @State private var searchText: String = ""
+    
+    /// Whether the archive confirmation dialog is shown.
+    @State private var showArchiveConfirmation: Bool = false
+    
+    /// The cycle ID pending archive confirmation.
+    @State private var pendingArchiveCycleId: UUID? = nil
     
     // MARK: - Constants
     
@@ -48,21 +54,22 @@ public struct SidebarView: View {
     // MARK: - Initialization
     
     /// Creates a new sidebar view.
-    /// - Parameters:
-    ///   - cycles: The list of available cycles.
-    ///   - selectedCycleId: Binding to the selected cycle ID.
-    ///   - onCreateCycle: Closure called when creating a new cycle.
-    ///   - onDeleteCycle: Closure called when deleting a cycle.
     public init(
         cycles: [OKRCycle],
         selectedCycleId: Binding<UUID?>,
         onCreateCycle: @escaping () -> Void,
-        onDeleteCycle: @escaping (UUID) -> Void = { _ in }
+        onDeleteCycle: @escaping (UUID) -> Void = { _ in },
+        onArchiveCycle: ((UUID) -> Void)? = nil,
+        onActivateCycle: ((UUID) -> Void)? = nil,
+        onExport: (() -> Void)? = nil
     ) {
         self.cycles = cycles
         self._selectedCycleId = selectedCycleId
         self.onCreateCycle = onCreateCycle
         self.onDeleteCycle = onDeleteCycle
+        self.onArchiveCycle = onArchiveCycle
+        self.onActivateCycle = onActivateCycle
+        self.onExport = onExport
     }
     
     // MARK: - Computed Properties
@@ -91,12 +98,28 @@ public struct SidebarView: View {
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
             .contextMenu {
-                Button("Delete") {
+                if !cycle.isArchived {
+                    Button("Activate") {
+                        onActivateCycle?(cycle.id)
+                    }
+                    .disabled(cycle.isActive)
+                    
+                    Divider()
+                    
+                    Button("Archive") {
+                        pendingArchiveCycleId = cycle.id
+                        showArchiveConfirmation = true
+                    }
+                    
+                    Divider()
+                }
+                
+                Button("Delete", role: .destructive) {
                     onDeleteCycle(cycle.id)
                 }
             }
             .accessibilityLabel("Cycle: \(cycle.name)")
-            .accessibilityValue(cycle.isActive ? "Active" : "Inactive")
+            .accessibilityValue(cycleStatusText(cycle))
             .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
     
@@ -183,32 +206,81 @@ public struct SidebarView: View {
             Divider()
                 .background(Color.white.opacity(0.08))
             
-            // Create cycle button
-            Button {
-                onCreateCycle()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 14))
-                    Text("New Cycle")
-                        .font(.system(size: 12, weight: .semibold))
+            // Bottom buttons
+            VStack(spacing: 6) {
+                // Create cycle button
+                Button {
+                    onCreateCycle()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 14))
+                        Text("New Cycle")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(Color(red: 147/255, green: 197/255, blue: 253/255))
+                    .frame(maxWidth: .infinity, minHeight: 32)
+                    .background(Color(red: 37/255, green: 99/255, blue: 235/255).opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(red: 59/255, green: 130/255, blue: 246/255).opacity(0.3), lineWidth: 1)
+                    )
                 }
-                .foregroundStyle(Color(red: 147/255, green: 197/255, blue: 253/255))
-                .frame(maxWidth: .infinity, minHeight: 32)
-                .background(Color(red: 37/255, green: 99/255, blue: 235/255).opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color(red: 59/255, green: 130/255, blue: 246/255).opacity(0.3), lineWidth: 1)
-                )
+                .buttonStyle(.plain)
+                .accessibilityLabel("Create new cycle")
+                
+                // Export button
+                if onExport != nil {
+                    Button {
+                        onExport?()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 13))
+                            Text("Export")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                        .frame(maxWidth: .infinity, minHeight: 28)
+                        .background(Color.white.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Export OKR data")
+                }
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .accessibilityLabel("Create new cycle")
         }
         .background(sidebarBackground)
         .frame(minWidth: 200, idealWidth: 220, maxWidth: 280)
+        .confirmationDialog(
+            "Archive Cycle",
+            isPresented: $showArchiveConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Archive", role: .destructive) {
+                if let cycleId = pendingArchiveCycleId {
+                    onArchiveCycle?(cycleId)
+                }
+                pendingArchiveCycleId = nil
+            }
+            Button("Cancel", role: .cancel) {
+                pendingArchiveCycleId = nil
+            }
+        } message: {
+            Text("Are you sure you want to archive this cycle? Archived cycles become read-only.")
+        }
+    }
+    
+    // MARK: - Helpers
+    
+    /// Returns a human-readable status text for accessibility.
+    private func cycleStatusText(_ cycle: OKRCycle) -> String {
+        if cycle.isArchived { return "Archived" }
+        if cycle.isActive { return "Active" }
+        return "Draft"
     }
 }
 
@@ -221,16 +293,30 @@ struct CycleRow: View {
     
     var body: some View {
         HStack(spacing: 10) {
-            // Status indicator
+            // Status indicator with color coding
+            // Active = green, Draft (inactive) = gray, Archived = blue
             Circle()
-                .fill(cycle.isActive ? Color(red: 16/255, green: 185/255, blue: 129/255) : Color(red: 100/255, green: 116/255, blue: 139/255))
+                .fill(statusColor)
                 .frame(width: 8, height: 8)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(cycle.name)
-                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
-                    .foregroundStyle(isSelected ? .white : Color(red: 203/255, green: 213/255, blue: 225/255))
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text(cycle.name)
+                        .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                        .foregroundStyle(isSelected ? .white : Color(red: 203/255, green: 213/255, blue: 225/255))
+                        .lineLimit(1)
+                    
+                    // Archived badge
+                    if cycle.isArchived {
+                        Text("ARCHIVED")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(Color(red: 59/255, green: 130/255, blue: 246/255))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Color(red: 59/255, green: 130/255, blue: 246/255).opacity(0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                }
                 
                 Text(formattedDateRange)
                     .font(.system(size: 10))
@@ -243,6 +329,20 @@ struct CycleRow: View {
         .padding(.vertical, 6)
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
+    }
+    
+    /// Cycle status color:
+    /// - Active (isActive): green
+    /// - Archived (isArchived): blue
+    /// - Draft (neither): gray
+    private var statusColor: Color {
+        if cycle.isArchived {
+            return Color(red: 59/255, green: 130/255, blue: 246/255) // blue
+        }
+        if cycle.isActive {
+            return Color(red: 16/255, green: 185/255, blue: 129/255) // green
+        }
+        return Color(red: 100/255, green: 116/255, blue: 139/255) // gray (draft)
     }
     
     private var formattedDateRange: String {
