@@ -49,6 +49,10 @@ public struct ExportDialogView: View {
     @State private var exportError: String?
     /// 是否显示保存面板
     @State private var showSavePanel = false
+    /// 导出历史
+    @State private var exportHistory: [ReportExportService.ExportHistoryEntry] = []
+    /// 是否显示导出历史
+    @State private var showExportHistory = false
 
     /// 可用的 Owner 列表
     private var availableOwners: [String] {
@@ -99,6 +103,11 @@ public struct ExportDialogView: View {
                             .font(.callout)
                     }
                 }
+
+                // 导出历史
+                if !exportHistory.isEmpty {
+                    exportHistorySection
+                }
             }
             .formStyle(.grouped)
             .navigationTitle("导出报表")
@@ -127,6 +136,7 @@ public struct ExportDialogView: View {
             }
             .task {
                 updatePreview()
+                exportHistory = ReportExportService.getExportHistory()
             }
             .onChange(of: selectedFormat) { _, _ in
                 updatePreview()
@@ -412,6 +422,58 @@ public struct ExportDialogView: View {
         }
     }
 
+    // MARK: - Export History Section
+
+    private var exportHistorySection: some View {
+        Section {
+            ForEach(exportHistory.prefix(5)) { entry in
+                HStack(spacing: 10) {
+                    Image(systemName: formatIconForHistory(entry.format))
+                        .foregroundStyle(formatColorForHistory(entry.format))
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(entry.fileName)
+                            .font(.caption)
+                            .lineLimit(1)
+                        HStack(spacing: 8) {
+                            Text(entry.format)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text(entry.formattedSize)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text("\(entry.nodeCount) 节点")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    Spacer()
+                    Text(entry.exportDate, style: .relative)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            if exportHistory.count > 5 {
+                Button("查看全部 \(exportHistory.count) 条记录") {
+                    showExportHistory = true
+                }
+                .font(.caption)
+            }
+        } header: {
+            HStack {
+                Text("导出历史")
+                Spacer()
+                Button("清除") {
+                    ReportExportService.clearExportHistory()
+                    exportHistory = []
+                }
+                .font(.caption)
+                .foregroundStyle(.red)
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func updatePreview() {
@@ -445,10 +507,34 @@ public struct ExportDialogView: View {
                 scope: selectedScope
             )
             exportResult = result
+
+            // 记录导出历史
+            let preview = ReportExportService.generatePreview(cycles: cycles, trees: trees, scope: selectedScope)
+            ReportExportService.recordExport(
+                result,
+                scope: selectedScope,
+                nodeCount: preview.totalNodesCount,
+                cycleCount: preview.cycleCount
+            )
+            exportHistory = ReportExportService.getExportHistory()
         } catch {
             exportError = "导出失败: \(error.localizedDescription)"
         }
         isExporting = false
+    }
+
+    private func formatIconForHistory(_ formatName: String) -> String {
+        if formatName.contains("PDF") { return "doc.richtext" }
+        if formatName.contains("Excel") || formatName.contains("CSV") { return "tablecells" }
+        if formatName.contains("JSON") { return "doc.text" }
+        return "doc"
+    }
+
+    private func formatColorForHistory(_ formatName: String) -> Color {
+        if formatName.contains("PDF") { return .red }
+        if formatName.contains("Excel") || formatName.contains("CSV") { return .green }
+        if formatName.contains("JSON") { return .orange }
+        return .blue
     }
 
     private func formatIcon(_ format: ReportExportService.ExportFormat) -> String {

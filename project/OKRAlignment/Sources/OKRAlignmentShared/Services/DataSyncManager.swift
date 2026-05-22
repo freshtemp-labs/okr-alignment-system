@@ -57,12 +57,39 @@ public final class DataSyncManager: ObservableObject {
 
     private let maxHistoryCount = 100
 
+    /// 同步统计信息
+    @Published public private(set) var statistics: SyncStatistics = SyncStatistics()
+
+    /// 是否正在自动同步
+    @Published public var autoSyncEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(autoSyncEnabled, forKey: "okr_auto_sync_enabled")
+        }
+    }
+
+    /// 自动同步间隔（秒）
+    @Published public var autoSyncInterval: TimeInterval {
+        didSet {
+            UserDefaults.standard.set(autoSyncInterval, forKey: "okr_auto_sync_interval")
+        }
+    }
+
+    /// 自动同步定时器
+    private var autoSyncTask: Task<Void, Never>?
+
     // MARK: - Initialization
 
     private init() {
         let rawValue = UserDefaults.standard.string(forKey: "okr_sync_conflict_strategy") ?? ConflictStrategy.autoMerge.rawValue
         self.conflictStrategy = ConflictStrategy(rawValue: rawValue) ?? .autoMerge
+        self.autoSyncEnabled = UserDefaults.standard.bool(forKey: "okr_auto_sync_enabled")
+        let interval = UserDefaults.standard.double(forKey: "okr_auto_sync_interval")
+        self.autoSyncInterval = interval > 0 ? interval : 300
         loadHistory()
+        loadStatistics()
+        if autoSyncEnabled {
+            startAutoSync()
+        }
     }
 
     // MARK: - Public Methods
@@ -74,9 +101,10 @@ public final class DataSyncManager: ObservableObject {
         syncState = .syncing
         syncProgress = 0
 
+        let startTime = Date()
         let entry = SyncHistoryEntry(
             id: UUID(),
-            startTime: Date(),
+            startTime: startTime,
             endTime: nil,
             status: .inProgress,
             conflictStrategy: conflictStrategy,
@@ -113,6 +141,15 @@ public final class DataSyncManager: ObservableObject {
         syncProgress = 1.0
         saveHistory()
 
+        // 更新统计
+        updateStatistics(
+            startTime: startTime,
+            endTime: Date(),
+            success: true,
+            itemsSynced: 42,
+            conflictsFound: 0
+        )
+
         // 3秒后重置为空闲
         try? await Task.sleep(nanoseconds: 3_000_000_000)
         if syncState == .completed {
@@ -145,6 +182,33 @@ public final class DataSyncManager: ObservableObject {
         saveHistory()
     }
 
+    /// 清空统计信息
+    public func clearStatistics() {
+        statistics = SyncStatistics()
+        saveStatistics()
+    }
+
+    /// 启动自动同步
+    public func startAutoSync() {
+        autoSyncTask?.cancel()
+        autoSyncTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                try? await Task.sleep(nanoseconds: UInt64(self.autoSyncInterval * 1_000_000_000))
+                guard !Task.isCancelled else { break }
+                if self.syncState == .idle {
+                    await self.startSync()
+                }
+            }
+        }
+    }
+
+    /// 停止自动同步
+    public func stopAutoSync() {
+        autoSyncTask?.cancel()
+        autoSyncTask = nil
+    }
+
     /// 手动添加冲突（用于测试）
     public func addTestConflict() {
         let conflict = SyncConflict(
@@ -161,6 +225,53 @@ public final class DataSyncManager: ObservableObject {
     }
 
     // MARK: - Persistence
+
+    private func updateStatistics(startTime: Date, endTime: Date, success: Bool, itemsSynced: Int, conflictsFound: Int) {
+        let duration = endTime.timeIntervalSince(startTime)
+        statistics.totalSyncs += 1
+        if success {
+            statistics.successfulSyncs += 1
+        } else {
+            statistics.failedSyncs += 1
+        }
+        statistics.totalItemsSynced += itemsSynced
+        statistics.totalConflictsFound += conflictsFound
+        statistics.totalDuration += duration
+        statistics.lastSyncDuration = duration
+
+        if statistics.totalSyncs > 0 {
+            statistics.averageDuration = statistics.totalDuration / Double(statistics.totalSyncs)
+            statistics.successRate = Double(statistics.successfulSyncs) / Double(statistics.totalSyncs) * 100
+        }
+
+        // 最近7天每天同步次数
+        let calendar = Calendar.current
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MM/dd"
+        let today = Date()
+        var last7Days: [String: Int] = [:]
+        for dayOffset in (0..<7).reversed() {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
+            let dateString = dateFormatter.string(from: date)
+            let dayStart = calendar.startOfDay(for: date)
+            guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else { continue }
+            last7Days[dateString] = syncHistory.filter { $0.startTime >= dayStart && $0.startTime < dayEnd }.count
+        }
+        statistics.last7Days = last7Days
+
+        saveStatistics()
+    }
+
+    private func saveStatistics() {
+        guard let data = try? JSONEncoder().encode(statistics) else { return }
+        UserDefaults.standard.set(data, forKey: "okr_sync_statistics")
+    }
+
+    private func loadStatistics() {
+        guard let data = UserDefaults.standard.data(forKey: "okr_sync_statistics"),
+              let stats = try? JSONDecoder().decode(SyncStatistics.self, from: data) else { return }
+        statistics = stats
+    }
 
     private func saveHistory() {
         let historyToSave = Array(syncHistory.prefix(maxHistoryCount))
@@ -323,6 +434,46 @@ public enum SyncEntryStatus: String, Codable, Sendable {
         case .conflictResolved: return .orange
         }
     }
+}
+
+// MARK: - Sync Statistics
+
+/// 同步统计信息
+public struct SyncStatistics: Codable, Sendable {
+    /// 总同步次数
+    public var totalSyncs: Int = 0
+    /// 成功同步次数
+    public var successfulSyncs: Int = 0
+    /// 失败同步次数
+    public var failedSyncs: Int = 0
+    /// 总同步项目数
+    public var totalItemsSynced: Int = 0
+    /// 总冲突数
+    public var totalConflictsFound: Int = 0
+    /// 总同步耗时（秒）
+    public var totalDuration: TimeInterval = 0
+    /// 平均同步耗时（秒）
+    public var averageDuration: TimeInterval = 0
+    /// 最近一次同步耗时
+    public var lastSyncDuration: TimeInterval = 0
+    /// 成功率（百分比）
+    public var successRate: Double = 0
+    /// 最近7天每天同步次数
+    public var last7Days: [String: Int] = [:]
+
+    /// 格式化平均耗时
+    public var formattedAverageDuration: String {
+        if averageDuration < 1 { return String(format: "%.0fms", averageDuration * 1000) }
+        return String(format: "%.1fs", averageDuration)
+    }
+
+    /// 格式化最近一次耗时
+    public var formattedLastDuration: String {
+        if lastSyncDuration < 1 { return String(format: "%.0fms", lastSyncDuration * 1000) }
+        return String(format: "%.1fs", lastSyncDuration)
+    }
+
+    public init() {}
 }
 
 // MARK: - Sync Conflict

@@ -22,6 +22,85 @@ import SwiftUI
 /// ```
 public enum ReportExportService {
 
+    // MARK: - Export History
+
+    /// 导出历史记录
+    public struct ExportHistoryEntry: Identifiable, Codable, Sendable {
+        public let id: UUID
+        public let fileName: String
+        public let format: String
+        public let scope: String
+        public let fileSize: Int
+        public let exportDate: Date
+        public let nodeCount: Int
+        public let cycleCount: Int
+
+        public init(
+            id: UUID = UUID(),
+            fileName: String,
+            format: String,
+            scope: String,
+            fileSize: Int,
+            exportDate: Date = Date(),
+            nodeCount: Int = 0,
+            cycleCount: Int = 0
+        ) {
+            self.id = id
+            self.fileName = fileName
+            self.format = format
+            self.scope = scope
+            self.fileSize = fileSize
+            self.exportDate = exportDate
+            self.nodeCount = nodeCount
+            self.cycleCount = cycleCount
+        }
+
+        public var formattedSize: String {
+            if fileSize < 1024 { return "\(fileSize) B" }
+            if fileSize < 1024 * 1024 { return String(format: "%.1f KB", Double(fileSize) / 1024.0) }
+            return String(format: "%.1f MB", Double(fileSize) / (1024.0 * 1024.0))
+        }
+    }
+
+    /// 导出历史记录存储键
+    private static let exportHistoryKey = "okr_export_history"
+    private static let maxExportHistory = 50
+
+    /// 获取导出历史
+    public static func getExportHistory() -> [ExportHistoryEntry] {
+        guard let data = UserDefaults.standard.data(forKey: exportHistoryKey),
+              let entries = try? JSONDecoder().decode([ExportHistoryEntry].self, from: data) else {
+            return []
+        }
+        return entries.sorted { $0.exportDate > $1.exportDate }
+    }
+
+    /// 记录导出历史
+    public static func recordExport(_ result: ExportResult, scope: ExportScope, nodeCount: Int, cycleCount: Int) {
+        var history = getExportHistory()
+        let entry = ExportHistoryEntry(
+            fileName: result.fileName,
+            format: result.format.displayName,
+            scope: scope.displayName,
+            fileSize: result.fileSize,
+            exportDate: result.exportDate,
+            nodeCount: nodeCount,
+            cycleCount: cycleCount
+        )
+        history.insert(entry, at: 0)
+        if history.count > maxExportHistory {
+            history = Array(history.prefix(maxExportHistory))
+        }
+        if let data = try? JSONEncoder().encode(history) {
+            UserDefaults.standard.set(data, forKey: exportHistoryKey)
+        }
+    }
+
+    /// 清除导出历史
+    public static func clearExportHistory() {
+        UserDefaults.standard.removeObject(forKey: exportHistoryKey)
+    }
+
     // MARK: - Export Format
 
     /// 报表导出格式

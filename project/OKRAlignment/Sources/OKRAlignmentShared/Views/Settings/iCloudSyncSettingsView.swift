@@ -180,6 +180,41 @@ public struct iCloudSyncSettingsView: View {
                         .foregroundStyle(.tertiary)
                 }
 
+                // 自动同步设置
+                Section {
+                    Toggle(isOn: $syncManager.autoSyncEnabled) {
+                        Label("自动同步", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .onChange(of: syncManager.autoSyncEnabled) { _, newValue in
+                        if newValue {
+                            syncManager.startAutoSync()
+                        } else {
+                            syncManager.stopAutoSync()
+                        }
+                    }
+
+                    if syncManager.autoSyncEnabled {
+                        Picker("同步间隔", selection: $syncManager.autoSyncInterval) {
+                            Text("每 1 分钟").tag(TimeInterval(60))
+                            Text("每 5 分钟").tag(TimeInterval(300))
+                            Text("每 15 分钟").tag(TimeInterval(900))
+                            Text("每 30 分钟").tag(TimeInterval(1800))
+                            Text("每 1 小时").tag(TimeInterval(3600))
+                        }
+                        .pickerStyle(.menu)
+                    }
+                } header: {
+                    Text("自动同步")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } footer: {
+                    if syncManager.autoSyncEnabled {
+                        Text("应用将按设定间隔自动同步数据。")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
                 // 同步信息
                 Section {
                     statusRow(
@@ -374,8 +409,19 @@ private struct SyncHistoryListView: View {
                     )
                 } else {
                     List {
-                        ForEach(syncManager.syncHistory) { entry in
-                            SyncHistoryRow(entry: entry)
+                        // 统计概要
+                        Section {
+                            let stats = syncManager.statistics
+                            if stats.totalSyncs > 0 {
+                                SyncStatsOverview(stats: stats)
+                            }
+                        }
+
+                        // 历史记录
+                        Section("同步记录") {
+                            ForEach(syncManager.syncHistory) { entry in
+                                SyncHistoryRow(entry: entry)
+                            }
                         }
                     }
                 }
@@ -465,3 +511,67 @@ private struct SyncHistoryRow: View {
     .preferredColorScheme(.dark)
 }
 #endif
+
+// MARK: - Sync Stats Overview
+
+private struct SyncStatsOverview: View {
+    let stats: SyncStatistics
+
+    var body: some View {
+        VStack(spacing: 12) {
+            // 概要指标
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 8) {
+                StatsMetric(title: "总同步", value: "\(stats.totalSyncs)")
+                StatsMetric(title: "成功率", value: String(format: "%.0f%%", stats.successRate))
+                StatsMetric(title: "平均耗时", value: stats.formattedAverageDuration)
+            }
+
+            // 最近7天趋势
+            if !stats.last7Days.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("最近 7 天")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                    HStack(alignment: .bottom, spacing: 4) {
+                        ForEach(Array(stats.last7Days.sorted(by: { $0.key < $1.key })), id: \.key) { day, count in
+                            VStack(spacing: 2) {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Color.blue.opacity(0.6))
+                                    .frame(height: max(4, CGFloat(count) * 6))
+                                Text(day)
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .frame(height: 50)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct StatsMetric: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.callout.bold())
+                .foregroundStyle(.blue)
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(Color.blue.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+}

@@ -100,6 +100,64 @@ public final class NotificationService: @unchecked Sendable {
         }
     }
 
+    // MARK: - Quiet Hours
+
+    /// 免打扰时间配置
+    public struct QuietHours: Codable, Sendable {
+        /// 是否启用免打扰
+        public var enabled: Bool
+        /// 免打扰开始时间（小时）
+        public var startHour: Int
+        /// 免打扰开始时间（分钟）
+        public var startMinute: Int
+        /// 免打扰结束时间（小时）
+        public var endHour: Int
+        /// 免打扰结束时间（分钟）
+        public var endMinute: Int
+
+        public init(
+            enabled: Bool = false,
+            startHour: Int = 22,
+            startMinute: Int = 0,
+            endHour: Int = 8,
+            endMinute: Int = 0
+        ) {
+            self.enabled = enabled
+            self.startHour = startHour
+            self.startMinute = startMinute
+            self.endHour = endHour
+            self.endMinute = endMinute
+        }
+
+        /// 格式化开始时间
+        public var formattedStart: String {
+            String(format: "%02d:%02d", startHour, startMinute)
+        }
+
+        /// 格式化结束时间
+        public var formattedEnd: String {
+            String(format: "%02d:%02d", endHour, endMinute)
+        }
+
+        /// 检查指定时间是否在免打扰时间内
+        public func isQuietTime(at date: Date = Date()) -> Bool {
+            guard enabled else { return false }
+            let calendar = Calendar.current
+            let hour = calendar.component(.hour, from: date)
+            let minute = calendar.component(.minute, from: date)
+            let currentMinutes = hour * 60 + minute
+            let startMinutes = startHour * 60 + startMinute
+            let endMinutes = endHour * 60 + endMinute
+
+            if startMinutes <= endMinutes {
+                return currentMinutes >= startMinutes && currentMinutes < endMinutes
+            } else {
+                // 跨午夜
+                return currentMinutes >= startMinutes || currentMinutes < endMinutes
+            }
+        }
+    }
+
     // MARK: - Notification Group
 
     /// 通知分组方式
@@ -237,6 +295,22 @@ public final class NotificationService: @unchecked Sendable {
         }
     }
 
+    /// 免打扰时间配置
+    public var quietHours: QuietHours {
+        get {
+            if let data = UserDefaults.standard.data(forKey: "okr_notification_quiet_hours"),
+               let decoded = try? JSONDecoder().decode(QuietHours.self, from: data) {
+                return decoded
+            }
+            return QuietHours()
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                UserDefaults.standard.set(data, forKey: "okr_notification_quiet_hours")
+            }
+        }
+    }
+
     /// 通知分组方式
     public var groupMode: NotificationGroup {
         get {
@@ -307,15 +381,35 @@ public final class NotificationService: @unchecked Sendable {
                     threshold: threshold
                 )
 
-                // 立即发送
-                let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-                let request = UNNotificationRequest(
-                    identifier: identifier,
-                    content: content,
-                    trigger: trigger
-                )
+                // 免打扰时间检查：延迟到免打扰结束后发送
+                if quietHours.isQuietTime() {
+                    // 计算到免打扰结束的时间间隔
+                    let calendar = Calendar.current
+                    let now = Date()
+                    var endComponents = DateComponents()
+                    endComponents.hour = quietHours.endHour
+                    endComponents.minute = quietHours.endMinute
+                    if let endDate = calendar.nextDate(after: now, matching: endComponents, matchingPolicy: .nextTime) {
+                        let delay = endDate.timeIntervalSince(now)
+                        let delayedTrigger = UNTimeIntervalNotificationTrigger(timeInterval: max(delay, 1), repeats: false)
+                        let delayedRequest = UNNotificationRequest(
+                            identifier: identifier,
+                            content: content,
+                            trigger: delayedTrigger
+                        )
+                        try await notificationCenter.add(delayedRequest)
+                    }
+                } else {
+                    // 立即发送
+                    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+                    let request = UNNotificationRequest(
+                        identifier: identifier,
+                        content: content,
+                        trigger: trigger
+                    )
 
-                try await notificationCenter.add(request)
+                    try await notificationCenter.add(request)
+                }
 
                 // 记录历史
                 addNotificationRecord(
@@ -573,7 +667,7 @@ public final class NotificationService: @unchecked Sendable {
         ) else { return }
 
         if let index = records.firstIndex(where: { $0.id == recordId }) {
-            var record = records[index]
+            let record = records[index]
             let updatedRecord = NotificationRecord(
                 id: record.id,
                 title: record.title,

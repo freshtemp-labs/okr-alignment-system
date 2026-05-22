@@ -48,6 +48,11 @@ public struct NotificationSettingsView: View {
     /// 通知分组方式
     @State private var groupMode: NotificationService.NotificationGroup = .none
 
+    /// 免打扰时间
+    @State private var quietHoursEnabled = false
+    @State private var quietStartTime = Date()
+    @State private var quietEndTime = Date()
+
     /// 授权状态
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
 
@@ -83,6 +88,11 @@ public struct NotificationSettingsView: View {
             // 通知分组
             if notificationsEnabled {
                 notificationGroupSection
+            }
+
+            // 免打扰时间
+            if notificationsEnabled {
+                quietHoursSection
             }
 
             // 通知统计
@@ -285,6 +295,47 @@ public struct NotificationSettingsView: View {
         }
     }
 
+    /// 免打扰时间设置区域
+    private var quietHoursSection: some View {
+        Section {
+            Toggle(isOn: $quietHoursEnabled) {
+                Label("免打扰时间", systemImage: "moon.fill")
+            }
+            .onChange(of: quietHoursEnabled) { _, newValue in
+                saveQuietHours()
+            }
+
+            if quietHoursEnabled {
+                DatePicker("开始时间", selection: $quietStartTime, displayedComponents: .hourAndMinute)
+                    .onChange(of: quietStartTime) { _, _ in
+                        saveQuietHours()
+                    }
+
+                DatePicker("结束时间", selection: $quietEndTime, displayedComponents: .hourAndMinute)
+                    .onChange(of: quietEndTime) { _, _ in
+                        saveQuietHours()
+                    }
+
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                    Text("免打扰期间收到的通知将在时间结束后自动发送。")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Text("免打扰时间")
+        } footer: {
+            if quietHoursEnabled {
+                Text("免打扰时段: \(formatQuietTimeRange())")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
     /// 通知统计区域
     private var notificationStatsSection: some View {
         Section {
@@ -482,6 +533,19 @@ public struct NotificationSettingsView: View {
         weeklyReminderTime = calendar.date(from: weeklyComponents) ?? Date()
 
         groupMode = notificationService.groupMode
+
+        // 加载免打扰时间配置
+        let qh = notificationService.quietHours
+        quietHoursEnabled = qh.enabled
+        let calendar2 = Calendar.current
+        var qStartComponents = DateComponents()
+        qStartComponents.hour = qh.startHour
+        qStartComponents.minute = qh.startMinute
+        quietStartTime = calendar2.date(from: qStartComponents) ?? Date()
+        var qEndComponents = DateComponents()
+        qEndComponents.hour = qh.endHour
+        qEndComponents.minute = qh.endMinute
+        quietEndTime = calendar2.date(from: qEndComponents) ?? Date()
     }
 
     /// 保存设置
@@ -500,6 +564,27 @@ public struct NotificationSettingsView: View {
     /// 加载历史记录
     private func loadHistory() {
         notificationHistory = notificationService.getNotificationHistory(limit: 20)
+    }
+
+    /// 保存免打扰时间配置
+    private func saveQuietHours() {
+        let calendar = Calendar.current
+        var config = notificationService.quietHours
+        config.enabled = quietHoursEnabled
+        config.startHour = calendar.component(.hour, from: quietStartTime)
+        config.startMinute = calendar.component(.minute, from: quietStartTime)
+        config.endHour = calendar.component(.hour, from: quietEndTime)
+        config.endMinute = calendar.component(.minute, from: quietEndTime)
+        notificationService.quietHours = config
+    }
+
+    /// 格式化免打扰时间范围
+    private func formatQuietTimeRange() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        let start = formatter.string(from: quietStartTime)
+        let end = formatter.string(from: quietEndTime)
+        return "\(start) - \(end)"
     }
 
     /// 状态图标名称
