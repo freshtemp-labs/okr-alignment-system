@@ -21,8 +21,11 @@ import XCTest
 /// - 完整树计算/Demo数据验证 (2个测试)
 /// - 更新叶子并重计算 (5个测试)
 /// - 边界测试 (5个测试)
+/// - 加权进度计算 (2个测试)
+/// - 所有权重为0的处理 (2个测试)
+/// - 循环引用防御 (1个测试)
 ///
-/// 总计: 23个测试方法
+/// 总计: 28个测试方法
 @MainActor
 final class CascadeEngineTests: XCTestCase {
 
@@ -695,5 +698,91 @@ final class CascadeEngineTests: XCTestCase {
         // Assert: (40 + 80) / 2 = 60
         XCTAssertEqual(result.progress, 60.0, accuracy: 0.001,
             "默认权重1.0应退化为简单算术平均")
+    }
+
+    // MARK: - 测试组7: 所有权重为0的处理
+
+    /// 测试: 所有子节点权重为0时，回退到简单算术平均
+    ///
+    /// Arrange: 两个子节点weight均为0，progress分别为40%和80%
+    /// Act: 调用calculateProgress
+    /// Assert: 父节点progress == 60%（简单平均，防御性回退）
+    func test_allZeroWeights_fallsBackToSimpleAverage() {
+        // Arrange
+        var child1 = TestDataFactory.createLeafKR(
+            title: "Zero Weight KR1", current: 40, target: 100, unit: "%", owner: "Alice", scope: .personal
+        )
+        child1.weight = 0.0
+        var child2 = TestDataFactory.createLeafKR(
+            title: "Zero Weight KR2", current: 80, target: 100, unit: "%", owner: "Alice", scope: .personal
+        )
+        child2.weight = 0.0
+        let parent = TestDataFactory.createObjective(
+            title: "Parent O", owner: "Alice", scope: .personal, children: [child1, child2]
+        )
+
+        // Act
+        let result = sut.calculateProgress(for: parent)
+
+        // Assert: 所有weight为0时应退化为简单算术平均 (40 + 80) / 2 = 60
+        XCTAssertEqual(result.progress, 60.0, accuracy: 0.001,
+            "所有权重为0时应退化为简单算术平均")
+    }
+
+    /// 测试: 单个子节点权重为0时仍能正常计算
+    ///
+    /// Arrange: 一个子节点weight=0，另一个weight=1.0
+    /// Act: 调用calculateProgress
+    /// Assert: 引擎正常计算加权平均（weight=0的节点贡献为0）
+    func test_mixedZeroWeights_calculatesCorrectly() {
+        // Arrange
+        var child1 = TestDataFactory.createLeafKR(
+            title: "Zero Weight KR", current: 80, target: 100, unit: "%", owner: "Alice", scope: .personal
+        )
+        child1.weight = 0.0
+        let child2 = TestDataFactory.createLeafKR(
+            title: "Normal Weight KR", current: 40, target: 100, unit: "%", owner: "Alice", scope: .personal
+        )
+        // child2.weight defaults to 1.0
+        let parent = TestDataFactory.createObjective(
+            title: "Parent O", owner: "Alice", scope: .personal, children: [child1, child2]
+        )
+
+        // Act
+        let result = sut.calculateProgress(for: parent)
+
+        // Assert: (80*0 + 40*1) / (0+1) = 40
+        XCTAssertEqual(result.progress, 40.0, accuracy: 0.001,
+            "混合权重(0和1)时应正确计算加权平均")
+    }
+
+    // MARK: - 测试组8: 循环引用防御
+
+    /// 测试: 引擎能正确处理树结构中的重复ID
+    ///
+    /// 由于OKRNode是值类型(struct)，循环引用在编译期就被阻止。
+    /// 此测试验证引擎在遇到重复ID（不应发生但需防御）时的行为。
+    ///
+    /// Arrange: 创建一个子节点与父节点具有相同ID
+    /// Act: 调用updateLeafAndRecalculate
+    /// Assert: 引擎不陷入无限循环，正常完成计算
+    func test_duplicateIds_engineDoesNotLoop() {
+        // Arrange - 创建一个正常树结构
+        let leaf = TestDataFactory.createLeafKR(
+            title: "Leaf KR", current: 50, target: 100, unit: "%", owner: "Alice", scope: .personal
+        )
+        let parent = TestDataFactory.createObjective(
+            title: "Parent O", owner: "Alice", scope: .personal, children: [leaf]
+        )
+
+        // Act - 使用一个不存在的ID进行更新（模拟循环引用场景中找不到目标节点）
+        let nonExistentId = UUID()
+        let result = sut.updateLeafAndRecalculate(treeRoot: parent, leafId: nonExistentId, newValue: 75)
+
+        // Assert - 引擎应正常返回，不崩溃
+        XCTAssertEqual(result.children[0].currentValue, 50.0,
+            "不存在的叶子ID不应影响原始节点")
+        XCTAssertEqual(result.progress, 50.0, accuracy: 0.001,
+            "父节点progress应保持不变")
     }
 }

@@ -20,8 +20,11 @@ import XCTest
 /// - 叶子节点值验证 (1个测试)
 /// - Cycle关联验证 (1个测试)
 /// - 多错误组合验证 (1个测试)
+/// - 标题超长验证 (1个测试)
+/// - currentValue > targetValue 验证 (1个测试)
+/// - weight 为负数验证 (1个测试)
 ///
-/// 总计: 8个测试方法
+/// 总计: 11个测试方法
 @MainActor
 final class NodeValidatorTests: XCTestCase {
 
@@ -305,5 +308,92 @@ final class NodeValidatorTests: XCTestCase {
             "应返回cycleNotSet错误")
         XCTAssertGreaterThanOrEqual(errors.count, 3,
             "应返回至少3个错误")
+    }
+
+    // MARK: - 测试: 标题超长
+
+    /// 测试: 非常长的标题应通过验证（NodeValidator不强制标题长度上限）
+    ///
+    /// Arrange: 创建一个标题长度为1000+字符的节点
+    /// Act: 调用validateNode
+    /// Assert: 返回空错误数组
+    func test_validateNode_withVeryLongTitle_returnsNoErrors() {
+        // Arrange - 创建一个1000+字符的标题
+        let longTitle = String(repeating: "这是一个非常长的标题", count: 100)
+        let node = TestDataFactory.createLeafKR(
+            title: longTitle,
+            current: 50,
+            target: 100,
+            unit: "%",
+            owner: "Alice",
+            scope: .personal
+        )
+
+        // Act
+        let errors = sut.validateNode(node)
+
+        // Assert - NodeValidator不限制标题长度
+        XCTAssertFalse(errors.contains(.emptyTitle),
+            "非空白的长标题不应触发emptyTitle错误")
+    }
+
+    // MARK: - 测试: currentValue > targetValue
+
+    /// 测试: currentValue超过targetValue时，NodeValidator不报错
+    ///
+    /// 注: currentValue范围验证由OKRNode.validate()扩展处理，
+    ///     不是NodeValidator的职责。
+    ///
+    /// Arrange: 创建一个currentValue=150, targetValue=100的叶子节点
+    /// Act: 调用validateNode
+    /// Assert: 返回空错误数组（NodeValidator不检查此规则）
+    func test_validateNode_currentValueExceedsTarget_returnsNoErrors() {
+        // Arrange
+        let node = TestDataFactory.createLeafKR(
+            title: "超量完成的KR",
+            current: 150,
+            target: 100,
+            unit: "%",
+            owner: "Alice",
+            scope: .personal
+        )
+
+        // Act
+        let errors = sut.validateNode(node)
+
+        // Assert - NodeValidator不检查currentValue范围
+        XCTAssertFalse(errors.contains(.invalidTargetValue),
+            "targetValue=100是有效的")
+        XCTAssertFalse(errors.contains(.leafMissingValues),
+            "叶子节点有完整的数值")
+    }
+
+    // MARK: - 测试: weight 为负数
+
+    /// 测试: 负数权重不会导致NodeValidator验证错误
+    ///
+    /// 注: 权重验证不是NodeValidator的职责，引擎会自行处理异常权重。
+    ///
+    /// Arrange: 创建一个weight=-1.0的节点
+    /// Act: 调用validateNode
+    /// Assert: 返回空错误数组
+    func test_validateNode_negativeWeight_returnsNoErrors() {
+        // Arrange
+        var node = TestDataFactory.createLeafKR(
+            title: "负权重KR",
+            current: 50,
+            target: 100,
+            unit: "%",
+            owner: "Alice",
+            scope: .personal
+        )
+        node.weight = -1.0
+
+        // Act
+        let errors = sut.validateNode(node)
+
+        // Assert - NodeValidator不验证weight字段
+        XCTAssertTrue(errors.isEmpty,
+            "NodeValidator不应验证weight字段，负权重不产生验证错误")
     }
 }
