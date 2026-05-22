@@ -59,6 +59,28 @@ public struct AnalyticsView: View {
                     // Owner进度排名柱状图
                     ownerRankingChart
 
+                    // 热力图
+                    if !viewModel.heatmapData.isEmpty {
+                        HeatmapView(data: viewModel.heatmapData)
+                    }
+
+                    // 甘特图（如果有周期数据）
+                    if !viewModel.ganttItems.isEmpty {
+                        GanttChartView(
+                            items: viewModel.ganttItems,
+                            cycleStartDate: Calendar.current.date(byAdding: .month, value: -3, to: Date()) ?? Date(),
+                            cycleEndDate: Date()
+                        )
+                    }
+
+                    // 网络图
+                    if !viewModel.networkNodes.isEmpty {
+                        NetworkGraphView(
+                            nodes: viewModel.networkNodes,
+                            edges: viewModel.networkEdges
+                        )
+                    }
+
                     // 进度趋势折线图
                     if !viewModel.trendData.isEmpty {
                         trendChart

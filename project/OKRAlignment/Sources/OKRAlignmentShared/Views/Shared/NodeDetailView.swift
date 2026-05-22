@@ -207,6 +207,21 @@ public struct NodeDetailView: View {
                     }
 
                     Spacer(minLength: 20)
+
+                    // 评论区域
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+
+                    CommentListView(
+                        nodeId: node.id,
+                        currentUserName: RoleManager.shared.currentUserName,
+                        availableUsers: extractAllOwners(from: node)
+                    )
+                    .onAppear {
+                        // Comments will load on appear
+                    }
+
+                    Spacer(minLength: 20)
                 }
                 .padding(20)
             }
@@ -299,6 +314,19 @@ public struct NodeDetailView: View {
         case .completed: return "Completed"
         case .cancelled: return "Cancelled"
         }
+    }
+
+    /// 从节点树中提取所有Owner名称
+    private func extractAllOwners(from node: OKRNode) -> [String] {
+        var owners = Set<String>()
+        func walk(_ n: OKRNode) {
+            owners.insert(n.ownerName)
+            for child in n.children {
+                walk(child)
+            }
+        }
+        walk(node)
+        return Array(owners).sorted()
     }
 }
 

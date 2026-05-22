@@ -29,6 +29,18 @@ public final class AnalyticsViewModel {
     /// 整体统计指标
     public var statistics: OKRStatistics = OKRStatistics()
 
+    /// 热力图数据（各Owner进度分布）
+    public var heatmapData: [HeatmapRow] = []
+
+    /// 甘特图数据（节点时间线）
+    public var ganttItems: [GanttItem] = []
+
+    /// 网络图节点
+    public var networkNodes: [NetworkNode] = []
+
+    /// 网络图边
+    public var networkEdges: [NetworkEdge] = []
+
     /// 是否正在计算
     public var isLoading: Bool = false
 
@@ -74,6 +86,15 @@ public final class AnalyticsViewModel {
 
             // 计算整体统计
             calculateStatistics(from: allNodes)
+
+            // 计算热力图数据
+            calculateHeatmapData(from: allNodes)
+
+            // 计算甘特图数据
+            calculateGanttData(from: allNodes, cycle: nil)
+
+            // 计算网络图数据
+            calculateNetworkData(from: root, allNodes: allNodes)
 
             // 加载趋势数据（所有周期）
             await loadTrendData()
@@ -184,6 +205,139 @@ public final class AnalyticsViewModel {
             // 趋势数据加载失败不影响其他统计
             trendData = []
         }
+    }
+
+    // MARK: - 热力图数据计算
+
+    /// 计算各Owner的热力图数据（进度、完成率、风险率、KR数）
+    private func calculateHeatmapData(from nodes: [OKRNode]) {
+        let krNodes = nodes.filter { $0.nodeType == .keyResult && $0.isLeaf }
+        var ownerGroups: [String: [OKRNode]] = [:]
+
+        for node in krNodes {
+            ownerGroups[node.ownerName, default: []].append(node)
+        }
+
+        heatmapData = ownerGroups.map { owner, nodes in
+            let avgProgress = nodes.map(\.progress).reduce(0, +) / Double(max(nodes.count, 1))
+            let completedCount = nodes.filter { $0.status == .completed }.count
+            let atRiskCount = nodes.filter { $0.status == .atRisk }.count
+            let completedRate = Double(completedCount) / Double(max(nodes.count, 1)) * 100
+            let atRiskRate = Double(atRiskCount) / Double(max(nodes.count, 1)) * 100
+
+            return HeatmapRow(
+                ownerName: owner,
+                averageProgress: avgProgress,
+                completedRate: completedRate,
+                atRiskRate: atRiskRate,
+                krCount: nodes.count
+            )
+        }
+        .sorted { $0.averageProgress > $1.averageProgress }
+    }
+
+    // MARK: - 甘特图数据计算
+
+    /// 计算甘特图数据（各节点的时间线）
+    private func calculateGanttData(from nodes: [OKRNode], cycle: OKRCycle?) {
+        // 使用节点的创建时间作为开始，当前时间或完成时间作为结束
+        // 基于节点进度模拟时间线
+        let objectives = nodes.filter { $0.nodeType == .objective }
+
+        ganttItems = objectives.compactMap { node -> GanttItem? in
+            let startDate = node.createdAt
+            let now = Date()
+            // 如果已完成，使用更新时间；否则使用当前时间
+            let endDate = node.status == .completed ? node.updatedAt : now
+            // 确保结束日期在开始日期之后
+            let effectiveEnd = max(endDate, startDate.addingTimeInterval(86400))
+
+            return GanttItem(
+                id: node.id,
+                title: String(node.title.prefix(20)),
+                actualStartDate: startDate,
+                actualEndDate: effectiveEnd,
+                progress: node.progress,
+                status: node.status
+            )
+        }
+        .sorted { $0.actualStartDate < $1.actualStartDate }
+    }
+
+    // MARK: - 网络图数据计算
+
+    /// 计算网络图数据（节点和连线）
+    private func calculateNetworkData(from root: OKRNode, allNodes: [OKRNode]) {
+        var nodes: [NetworkNode] = []
+        var edges: [NetworkEdge] = []
+
+        // 计算层级布局
+        func addNodeAndChildren(_ node: OKRNode, depth: Int, index: Int, maxSiblings: Int) {
+            // 计算归一化坐标
+            let x: CGFloat
+            let y: CGFloat
+
+            if node.isRoot {
+                x = 0.5
+                y = 0.08
+            } else {
+                // 水平分散，垂直按深度排列
+                let depthSpacing = CGFloat(depth) / CGFloat(max(4, maxTreeDepth(allNodes)))
+                y = 0.08 + depthSpacing * 0.85
+
+                let siblingCount = max(maxSiblings, 1)
+                let fraction = CGFloat(index) / CGFloat(max(siblingCount - 1, 1))
+                x = 0.15 + fraction * 0.7
+            }
+
+            let networkNode = NetworkNode(
+                id: node.id,
+                title: node.title,
+                nodeType: node.nodeType,
+                ownerName: node.ownerName,
+                progress: node.progress,
+                normalizedX: x,
+                normalizedY: min(0.92, y)
+            )
+            nodes.append(networkNode)
+
+            // 创建到子节点的边
+            for (childIndex, child) in node.children.enumerated() {
+                let edge = NetworkEdge(
+                    fromId: node.id,
+                    toId: child.id,
+                    color: child.nodeType == .objective ? .orange : .blue
+                )
+                edges.append(edge)
+
+                addNodeAndChildren(
+                    child,
+                    depth: depth + 1,
+                    index: childIndex,
+                    maxSiblings: node.children.count
+                )
+            }
+        }
+
+        // 计算树的最大深度
+        func maxTreeDepth(_ nodes: [OKRNode]) -> Int {
+            var maxDepth = 0
+            func walk(_ node: OKRNode, _ depth: Int) {
+                maxDepth = max(maxDepth, depth)
+                for child in node.children {
+                    walk(child, depth + 1)
+                }
+            }
+            for node in nodes where node.isRoot {
+                walk(node, 0)
+            }
+            return max(maxDepth, 1)
+        }
+
+        addNodeAndChildren(root, depth: 0, index: 0, maxSiblings: 1)
+
+        networkNodes = nodes
+        networkEdges = edges
     }
 }
 

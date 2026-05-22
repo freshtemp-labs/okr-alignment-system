@@ -508,8 +508,89 @@ public final class PersistenceController: @unchecked Sendable {
             nodesRel
         ]
 
+        // MARK: CommentEntity
+        let commentEntity = NSEntityDescription()
+        commentEntity.name = "CommentEntity"
+        commentEntity.managedObjectClassName = "OKRAlignmentShared.CommentEntity"
+
+        let commentIdAttr = NSAttributeDescription()
+        commentIdAttr.name = "id"
+        commentIdAttr.attributeType = .UUIDAttributeType
+        commentIdAttr.isOptional = false
+
+        let commentNodeIdAttr = NSAttributeDescription()
+        commentNodeIdAttr.name = "nodeId"
+        commentNodeIdAttr.attributeType = .UUIDAttributeType
+        commentNodeIdAttr.isOptional = false
+
+        let commentContentAttr = NSAttributeDescription()
+        commentContentAttr.name = "content"
+        commentContentAttr.attributeType = .stringAttributeType
+        commentContentAttr.isOptional = false
+
+        let commentAuthorAttr = NSAttributeDescription()
+        commentAuthorAttr.name = "authorName"
+        commentAuthorAttr.attributeType = .stringAttributeType
+        commentAuthorAttr.isOptional = false
+
+        let commentMentionsAttr = NSAttributeDescription()
+        commentMentionsAttr.name = "mentionedUsers"
+        commentMentionsAttr.attributeType = .stringAttributeType
+        commentMentionsAttr.isOptional = true
+
+        let commentCreatedAtAttr = NSAttributeDescription()
+        commentCreatedAtAttr.name = "createdAt"
+        commentCreatedAtAttr.attributeType = .dateAttributeType
+        commentCreatedAtAttr.isOptional = false
+        commentCreatedAtAttr.defaultValue = Date()
+
+        let commentEditedAtAttr = NSAttributeDescription()
+        commentEditedAtAttr.name = "editedAt"
+        commentEditedAtAttr.attributeType = .dateAttributeType
+        commentEditedAtAttr.isOptional = true
+
+        let commentIsDeletedAttr = NSAttributeDescription()
+        commentIsDeletedAttr.name = "softDeleted"
+        commentIsDeletedAttr.attributeType = .booleanAttributeType
+        commentIsDeletedAttr.isOptional = false
+        commentIsDeletedAttr.defaultValue = false
+
+        let commentParentCommentIdAttr = NSAttributeDescription()
+        commentParentCommentIdAttr.name = "parentCommentId"
+        commentParentCommentIdAttr.attributeType = .UUIDAttributeType
+        commentParentCommentIdAttr.isOptional = true
+
+        // Comment ↔ Node relationship
+        let commentNodeRel = NSRelationshipDescription()
+        commentNodeRel.name = "node"
+        commentNodeRel.destinationEntity = nodeEntity
+        commentNodeRel.minCount = 0
+        commentNodeRel.maxCount = 1
+        commentNodeRel.deleteRule = .nullifyDeleteRule
+
+        let nodeCommentsRel = NSRelationshipDescription()
+        nodeCommentsRel.name = "comments"
+        nodeCommentsRel.destinationEntity = commentEntity
+        nodeCommentsRel.minCount = 0
+        nodeCommentsRel.maxCount = 0
+        nodeCommentsRel.deleteRule = .cascadeDeleteRule
+
+        commentNodeRel.inverseRelationship = nodeCommentsRel
+        nodeCommentsRel.inverseRelationship = commentNodeRel
+
+        commentEntity.properties = [
+            commentIdAttr, commentNodeIdAttr,
+            commentContentAttr, commentAuthorAttr, commentMentionsAttr,
+            commentCreatedAtAttr, commentEditedAtAttr,
+            commentIsDeletedAttr, commentParentCommentIdAttr,
+            commentNodeRel
+        ]
+
+        // Add comments relationship to nodeEntity
+        nodeEntity.properties.append(nodeCommentsRel)
+
         // 组装模型
-        model.entities = [nodeEntity, cycleEntity]
+        model.entities = [nodeEntity, cycleEntity, commentEntity]
         return model
     }
 
