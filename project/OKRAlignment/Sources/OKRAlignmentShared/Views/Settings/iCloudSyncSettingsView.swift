@@ -34,6 +34,8 @@ public struct iCloudSyncSettingsView: View {
 
     /// 是否显示同步历史
     @State private var showSyncHistory = false
+    /// 是否显示同步仪表盘
+    @State private var showSyncDashboard = false
 
     // MARK: - Initialization
 
@@ -265,6 +267,27 @@ public struct iCloudSyncSettingsView: View {
                         }
                     }
                     .buttonStyle(.plain)
+
+                    // 同步仪表盘按钮
+                    Button {
+                        showSyncDashboard.toggle()
+                    } label: {
+                        HStack {
+                            Image(systemName: "gauge.with.dots.needle.bottom.fill")
+                                .foregroundStyle(Color(red: 59/255, green: 130/255, blue: 246/255))
+                                .frame(width: 20)
+                            Text("同步仪表盘")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Text("健康度 · 趋势")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 } header: {
                     Text("同步详情")
                         .font(.caption)
@@ -294,6 +317,9 @@ public struct iCloudSyncSettingsView: View {
         }
         .sheet(isPresented: $showSyncHistory) {
             SyncHistoryListView(syncManager: syncManager)
+        }
+        .sheet(isPresented: $showSyncDashboard) {
+            SyncDashboardView(syncManager: syncManager)
         }
     }
 

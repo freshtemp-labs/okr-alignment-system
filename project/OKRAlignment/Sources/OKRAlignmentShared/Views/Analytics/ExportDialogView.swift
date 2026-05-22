@@ -342,6 +342,17 @@ public struct ExportDialogView: View {
                         }
                     }
 
+                    // 趋势图
+                    if preview.trendData.count > 1 {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("进度趋势")
+                                .font(.caption.bold())
+                            ExportMiniTrendChart(trendData: preview.trendData)
+                                .frame(height: 60)
+                        }
+                    }
+
                     // 周期概要
                     if !preview.cycleSummaries.isEmpty {
                         Divider()
@@ -597,6 +608,83 @@ private struct PreviewMetric: View {
         .padding(.vertical, 6)
         .background(Color.blue.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+// MARK: - Export Mini Trend Chart
+
+/// 导出预览中的迷你趋势图
+private struct ExportMiniTrendChart: View {
+    let trendData: [ReportExportService.ExportPreview.TrendPoint]
+
+    var body: some View {
+        GeometryReader { geo in
+            let sortedData = trendData.sorted(by: { $0.date < $1.date })
+            let maxProgress = sortedData.map(\.averageProgress).max() ?? 100
+            let minProgress = sortedData.map(\.averageProgress).min() ?? 0
+            let range = max(maxProgress - minProgress, 1)
+            let width = geo.size.width
+            let height = geo.size.height
+
+            // 绘制区域图
+            Path { path in
+                guard sortedData.count > 1 else { return }
+
+                let stepX = width / CGFloat(sortedData.count - 1)
+                let padding: CGFloat = 4
+                let drawHeight = height - padding * 2
+
+                // 起点
+                let startY = padding + drawHeight * (1 - CGFloat((sortedData[0].averageProgress - minProgress) / range))
+                path.move(to: CGPoint(x: 0, y: startY))
+
+                for i in 1..<sortedData.count {
+                    let x = CGFloat(i) * stepX
+                    let y = padding + drawHeight * (1 - CGFloat((sortedData[i].averageProgress - minProgress) / range))
+                    path.addLine(to: CGPoint(x: x, y: y))
+                }
+
+                // 闭合区域
+                path.addLine(to: CGPoint(x: CGFloat(sortedData.count - 1) * stepX, y: height))
+                path.addLine(to: CGPoint(x: 0, y: height))
+                path.closeSubpath()
+            }
+            .fill(Color.blue.opacity(0.1))
+
+            // 绘制折线
+            Path { path in
+                guard sortedData.count > 1 else { return }
+
+                let stepX = width / CGFloat(sortedData.count - 1)
+                let padding: CGFloat = 4
+                let drawHeight = height - padding * 2
+
+                let startY = padding + drawHeight * (1 - CGFloat((sortedData[0].averageProgress - minProgress) / range))
+                path.move(to: CGPoint(x: 0, y: startY))
+
+                for i in 1..<sortedData.count {
+                    let x = CGFloat(i) * stepX
+                    let y = padding + drawHeight * (1 - CGFloat((sortedData[i].averageProgress - minProgress) / range))
+                    path.addLine(to: CGPoint(x: x, y: y))
+                }
+            }
+            .stroke(Color.blue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+
+            // 绘制数据点
+            ForEach(Array(sortedData.enumerated()), id: \.offset) { index, point in
+                let stepX = width / CGFloat(max(sortedData.count - 1, 1))
+                let padding: CGFloat = 4
+                let drawHeight = height - padding * 2
+                let x = CGFloat(index) * stepX
+                let y = padding + drawHeight * (1 - CGFloat((point.averageProgress - minProgress) / range))
+
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 6, height: 6)
+                    .overlay(Circle().stroke(Color.blue, lineWidth: 1.5))
+                    .position(x: x, y: y)
+            }
+        }
     }
 }
 

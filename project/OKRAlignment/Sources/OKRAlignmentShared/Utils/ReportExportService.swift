@@ -816,6 +816,26 @@ public enum ReportExportService {
             html += "</table>"
         }
 
+        // 趋势图
+        if !preview.trendData.isEmpty && preview.trendData.count > 1 {
+            html += "<h2>📈 进度趋势</h2>"
+            html += "<div style=\"display: flex; align-items: flex-end; height: 150px; gap: 4px; padding: 10px 0;\">"
+            let maxTrend = preview.trendData.map(\.averageProgress).max() ?? 100
+            for point in preview.trendData {
+                let height = maxTrend > 0 ? Int(point.averageProgress / maxTrend * 130) : 0
+                let color = point.averageProgress >= 80 ? "#10B981" : (point.averageProgress >= 50 ? "#3B82F6" : (point.averageProgress >= 20 ? "#F59E0B" : "#EF4444"))
+                let label = DateFormatter.localizedString(from: point.date, dateStyle: .short, timeStyle: .none)
+                html += """
+                <div style="flex: 1; text-align: center;">
+                <div style="background: \(color); height: \(height)px; border-radius: 4px 4px 0 0; margin: 0 2px;"></div>
+                <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">\(label)</div>
+                <div style="font-size: 10px; font-weight: bold; color: \(color);">\(String(format: "%.0f%%", point.averageProgress))</div>
+                </div>
+                """
+            }
+            html += "</div>"
+        }
+
         // 节点明细
         html += "<h2>📝 节点明细</h2><table><tr><th>周期</th><th>标题</th><th>类型</th><th>负责人</th><th>进度</th><th>状态</th></tr>"
         for cycle in cycles {

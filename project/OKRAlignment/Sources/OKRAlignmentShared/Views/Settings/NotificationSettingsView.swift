@@ -63,6 +63,8 @@ public struct NotificationSettingsView: View {
 
     /// 是否显示历史记录
     @State private var showHistory = false
+    /// 是否显示通知仪表盘
+    @State private var showDashboard = false
 
     // MARK: - Initialization
 
@@ -401,6 +403,27 @@ public struct NotificationSettingsView: View {
                         .frame(height: 60)
                     }
                 }
+
+                // 通知仪表盘入口
+                Button {
+                    showDashboard = true
+                } label: {
+                    HStack {
+                        Image(systemName: "gauge.with.dots.needle.bottom.fill")
+                            .foregroundStyle(Color(red: 59/255, green: 130/255, blue: 246/255))
+                            .frame(width: 20)
+                        Text("通知仪表盘")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Text("详细分析")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
             } else {
                 HStack {
                     Text("暂无统计数据")
@@ -483,6 +506,11 @@ public struct NotificationSettingsView: View {
         }
         .sheet(isPresented: $showHistory) {
             NotificationHistoryView(notificationService: notificationService)
+        }
+        .sheet(isPresented: $showDashboard) {
+            NavigationStack {
+                NotificationDashboardView(notificationService: notificationService)
+            }
         }
     }
 
