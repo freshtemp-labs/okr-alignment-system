@@ -45,17 +45,17 @@ public struct AppearanceSettingsView: View {
                     .buttonStyle(.plain)
                 }
             } header: {
-                Text("外观模式")
+                Text("settings.appearance".localized)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } footer: {
-                Text("跟随系统将根据 iOS/macOS 系统设置自动切换浅色和深色模式。")
+                Text("settings.appearance.footer".localized)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
         }
         .formStyle(.grouped)
-        .navigationTitle("外观")
+        .navigationTitle("settings.appearance".localized)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif

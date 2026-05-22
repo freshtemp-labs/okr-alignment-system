@@ -42,6 +42,9 @@ public struct TreeView: View {
     
     /// Horizontal spacing between sibling nodes.
     private let nodeSpacing: CGFloat = 40
+
+    /// Node count threshold for switching to virtualized view.
+    private let virtualizationThreshold = 100
     
     // MARK: - Initialization
     
@@ -77,52 +80,61 @@ public struct TreeView: View {
     // MARK: - Body
     
     public var body: some View {
-        ScrollView([.vertical, .horizontal]) {
-            if let rootNode = rootNode {
-                VStack(spacing: 0) {
-                    // Root node card
-                    OKRNodeCard(
-                        node: rootNode,
-                        isExpanded: Binding(
-                            get: { expandedNodeIds.contains(rootNode.id) },
-                            set: { isExpanded in
-                                toggleNode(rootNode.id, isExpanded: isExpanded)
-                            }
-                        ),
-                        onTap: { onNodeTap(rootNode) },
-                        onUpdateProgress: onUpdateProgress
-                    )
-                    .padding(.bottom, levelSpacing)
-                    
-                    // Recursively render children
-                    if expandedNodeIds.contains(rootNode.id) {
-                        childTreeView(for: rootNode.children)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                            .animation(.easeInOut(duration: 0.35), value: expandedNodeIds.contains(rootNode.id))
+        // Performance optimization: use virtualized view for large trees
+        if totalNodeCount > virtualizationThreshold {
+            VirtualizedTreeView(
+                rootNode: rootNode,
+                onNodeTap: onNodeTap,
+                onUpdateProgress: onUpdateProgress
+            )
+        } else {
+            ScrollView([.vertical, .horizontal]) {
+                if let rootNode = rootNode {
+                    VStack(spacing: 0) {
+                        // Root node card
+                        OKRNodeCard(
+                            node: rootNode,
+                            isExpanded: Binding(
+                                get: { expandedNodeIds.contains(rootNode.id) },
+                                set: { isExpanded in
+                                    toggleNode(rootNode.id, isExpanded: isExpanded)
+                                }
+                            ),
+                            onTap: { onNodeTap(rootNode) },
+                            onUpdateProgress: onUpdateProgress
+                        )
+                        .padding(.bottom, levelSpacing)
+                        
+                        // Recursively render children
+                        if expandedNodeIds.contains(rootNode.id) {
+                            childTreeView(for: rootNode.children)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                                .animation(.easeInOut(duration: 0.35), value: expandedNodeIds.contains(rootNode.id))
+                        }
                     }
+                    .frame(maxWidth: .infinity, minHeight: 600)
+                    .padding(40)
+                } else {
+                    // Empty state handled by parent
+                    Color.clear
+                        .frame(minWidth: 400, minHeight: 400)
                 }
-                .frame(maxWidth: .infinity, minHeight: 600)
-                .padding(40)
-            } else {
-                // Empty state handled by parent
-                Color.clear
-                    .frame(minWidth: 400, minHeight: 400)
             }
-        }
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-        .onAppear {
-            // Auto-expand root node on first appearance
-            if let rootNode = rootNode, expandedNodeIds.isEmpty {
-                expandedNodeIds.insert(rootNode.id)
+            .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+            .onAppear {
+                // Auto-expand root node on first appearance
+                if let rootNode = rootNode, expandedNodeIds.isEmpty {
+                    expandedNodeIds.insert(rootNode.id)
+                }
             }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("OKR tree with \(totalNodeCount) nodes, \(expandedCount) expanded")
-        .accessibilityAction(named: "Expand All") {
-            expandAll()
-        }
-        .accessibilityAction(named: "Collapse All") {
-            collapseAll()
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("OKR tree with \\(totalNodeCount) nodes, \\(expandedCount) expanded")
+            .accessibilityAction(named: "Expand All") {
+                expandAll()
+            }
+            .accessibilityAction(named: "Collapse All") {
+                collapseAll()
+            }
         }
     }
     

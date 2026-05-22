@@ -70,13 +70,25 @@ struct OKRAlignmentMacApp: App {
                     NavigationLink {
                         AppearanceSettingsView()
                     } label: {
-                        Label("外观", systemImage: "paintbrush")
+                        Label("settings.appearance".localized, systemImage: "paintbrush")
                     }
 
                     NavigationLink {
                         iCloudSyncSettingsView()
                     } label: {
-                        Label("iCloud 同步", systemImage: "icloud")
+                        Label("settings.icloud".localized, systemImage: "icloud")
+                    }
+
+                    NavigationLink {
+                        LanguageSettingsView()
+                    } label: {
+                        Label("settings.language".localized, systemImage: "globe")
+                    }
+
+                    NavigationLink {
+                        DataMigrationView()
+                    } label: {
+                        Label("settings.dataManagement".localized, systemImage: "internaldrive")
                     }
                 }
                 .listStyle(.sidebar)

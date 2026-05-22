@@ -6,6 +6,7 @@ import os
 /// 应用主题管理器
 /// 支持三种外观模式：跟随系统 / 始终浅色 / 始终深色
 /// 使用 @AppStorage 持久化用户偏好
+/// 支持国际化显示名称
 @Observable
 public final class ThemeManager: @unchecked Sendable {
 
@@ -20,12 +21,12 @@ public final class ThemeManager: @unchecked Sendable {
         /// 始终深色模式
         case dark = "dark"
 
-        /// 显示名称
+        /// 显示名称（支持国际化）
         public var displayName: String {
             switch self {
-            case .system: return "跟随系统"
-            case .light: return "始终浅色"
-            case .dark: return "始终深色"
+            case .system: return "settings.appearance.system".localized
+            case .light: return "settings.appearance.light".localized
+            case .dark: return "settings.appearance.dark".localized
             }
         }
 
