@@ -97,6 +97,7 @@ public struct SidebarView: View {
             .listRowBackground(rowBackground)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
+            .animation(.easeInOut(duration: 0.25), value: isSelected)
             .contextMenu {
                 if !cycle.isArchived {
                     Button("Activate") {

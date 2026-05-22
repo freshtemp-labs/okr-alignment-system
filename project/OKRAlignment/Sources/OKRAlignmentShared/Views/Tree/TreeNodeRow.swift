@@ -68,16 +68,22 @@ public struct TreeNodeRow: View {
                     isExpanded: Binding(
                         get: { expandedNodeIds.contains(node.id) },
                         set: { isExpanded in
-                            if isExpanded {
-                                expandedNodeIds.insert(node.id)
-                            } else {
-                                expandedNodeIds.remove(node.id)
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                if isExpanded {
+                                    expandedNodeIds.insert(node.id)
+                                } else {
+                                    expandedNodeIds.remove(node.id)
+                                }
                             }
                         }
                     ),
                     onTap: { onNodeTap(node) },
                     onUpdateProgress: onUpdateProgress
                 )
+                .transition(.asymmetric(
+                    insertion: .scale.combined(with: .opacity),
+                    removal: .opacity.combined(with: .scale(scale: 0.8))
+                ))
             }
         }
         .frame(maxWidth: .infinity)

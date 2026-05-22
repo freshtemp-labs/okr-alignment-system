@@ -116,6 +116,7 @@ public struct MacTreeView: View {
             // Auto-refresh tree when cycle selection changes
             if let cycleId = newCycleId {
                 Task {
+                    // Fade out current content, load new tree, fade back in
                     await viewModel.loadTree(cycleId: cycleId)
                     selectedNode = nil
                 }
@@ -185,10 +186,25 @@ public struct MacTreeView: View {
                     }
                 )
                 
-                // Detail panel
+                // Detail panel with slide animation
                 if let selectedNode = selectedNode {
-                    detailPanel(for: selectedNode)
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    NodeDetailView(
+                        node: selectedNode,
+                        onEdit: { node in
+                            editingNode = node
+                            isEditSheetPresented = true
+                        },
+                        onDismiss: {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                self.selectedNode = nil
+                            }
+                        }
+                    )
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .trailing).combined(with: .opacity)
+                    ))
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectedNode.id)
                 }
             }
         } else {
@@ -210,130 +226,8 @@ public struct MacTreeView: View {
         }
     }
     
-    // MARK: - Detail Panel
-    
-    /// Creates the detail panel for the selected node.
-    private func detailPanel(for node: OKRNode) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Header
-                HStack {
-                    NodeTypeLabel(nodeType: node.nodeType)
-                    Spacer()
-                    ScopeBadge(ownerName: node.ownerName, scope: node.scope)
-                }
-                
-                // Title
-                Text(node.title)
-                    .font(.system(size: 18, weight: .bold, design: .default))
-                    .foregroundStyle(.white)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-                
-                Divider()
-                    .background(Color.white.opacity(0.1))
-                
-                // Description
-                if let desc = node.nodeDescription {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Description")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
-                            .tracking(0.5)
-                        
-                        Text(desc)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color(red: 203/255, green: 213/255, blue: 225/255))
-                            .lineLimit(nil)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    
-                    Divider()
-                        .background(Color.white.opacity(0.1))
-                }
-                
-                // Progress section
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Progress")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
-                        .tracking(0.5)
-                    
-                    ProgressBar(
-                        progress: node.progress,
-                        scope: node.scope,
-                        nodeType: node.nodeType
-                    )
-                    
-                    HStack {
-                        Text(node.valueDisplayString)
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
-                        Spacer()
-                        Text(node.progressPercentage)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
-                }
-                
-                Divider()
-                    .background(Color.white.opacity(0.1))
-                
-                // Details grid
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: 12) {
-                    DetailItem(title: "Status", value: statusDisplayName(node.status))
-                    DetailItem(title: "Scope", value: node.scope == .enterprise ? "Enterprise" : "Personal")
-                    DetailItem(title: "Type", value: node.nodeType == .objective ? "Objective" : "Key Result")
-                    DetailItem(title: "Children", value: "\(node.children.count)")
-                }
-                
-                // Leaf controls for KR nodes
-                if node.isLeaf {
-                    Divider()
-                        .background(Color.white.opacity(0.1))
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Adjust Progress")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
-                            .tracking(0.5)
-                        
-                        LeafControls(
-                            node: node,
-                            isVisible: true,
-                            onUpdate: { nodeId, delta in
-                                Task {
-                                    await viewModel.updateLeafProgress(nodeId: nodeId, delta: delta)
-                                }
-                            }
-                        )
-                    }
-                }
-                
-                Divider()
-                    .background(Color.white.opacity(0.1))
-                
-                // Timestamps
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Created: \(formattedDate(node.createdAt))")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
-                    Text("Updated: \(formattedDate(node.updatedAt))")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
-                }
-                
-                Spacer(minLength: 20)
-            }
-            .padding(20)
-        }
-        .frame(minWidth: detailMinWidth, idealWidth: detailIdealWidth)
-        .background(Color(red: 30/255, green: 41/255, blue: 59/255))
-    }
-    
+    // Note: Detail panel is now handled by NodeDetailView from OKRAlignmentShared
+
     // MARK: - Toolbar
     
     @ToolbarContentBuilder
@@ -665,26 +559,6 @@ public struct MacTreeView: View {
     }
 }
 
-// MARK: - DetailItem
-
-/// A small key-value display component for the detail panel.
-struct DetailItem: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
-                .tracking(0.5)
-            Text(value)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
 
 #if !SWIFT_PACKAGE
 // MARK: - Previews

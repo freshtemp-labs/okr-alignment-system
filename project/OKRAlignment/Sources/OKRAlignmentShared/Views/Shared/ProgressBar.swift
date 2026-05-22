@@ -96,12 +96,36 @@ public struct ProgressBar: View {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(progressGradient)
                     .frame(width: max(0, min(CGFloat(progress / 100.0) * geometry.size.width, geometry.size.width)))
-                    .animation(.easeInOut(duration: 0.5), value: progress)
+            }
+            .overlay(alignment: .leading) {
+                // Color status dot at progress end
+                if progress > 2 {
+                    Circle()
+                        .fill(progressStatusColor)
+                        .frame(width: 6, height: 6)
+                        .offset(x: max(0, min(CGFloat(progress / 100.0) * geometry.size.width, geometry.size.width)) - 3)
+                        .animation(.easeInOut(duration: 0.5), value: progress)
+                }
             }
         }
         .frame(height: 6)
+        .animation(.easeInOut(duration: 0.5), value: progress)
         .accessibilityLabel("Progress")
         .accessibilityValue("\(Int(progress)) percent")
+    }
+
+    /// Color status based on progress thresholds:
+    /// - Red: < 30%
+    /// - Yellow/Orange: 30% - 70%
+    /// - Green: > 70%
+    private var progressStatusColor: Color {
+        if progress < 30 {
+            return Color(red: 239/255, green: 68/255, blue: 68/255) // red
+        } else if progress < 70 {
+            return Color(red: 245/255, green: 158/255, blue: 11/255) // amber
+        } else {
+            return Color(red: 16/255, green: 185/255, blue: 129/255) // green
+        }
     }
 }
 

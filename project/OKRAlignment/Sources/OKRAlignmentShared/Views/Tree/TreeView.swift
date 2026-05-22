@@ -84,6 +84,7 @@ public struct TreeView: View {
                     if expandedNodeIds.contains(rootNode.id) {
                         childTreeView(for: rootNode.children)
                             .transition(.opacity.combined(with: .move(edge: .top)))
+                            .animation(.easeInOut(duration: 0.35), value: expandedNodeIds.contains(rootNode.id))
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: 600)
@@ -136,6 +137,7 @@ public struct TreeView: View {
                     if expandedNodeIds.contains(node.id) && !node.children.isEmpty {
                         childTreeView(for: node.children)
                             .transition(.opacity.combined(with: .move(edge: .top)))
+                            .animation(.easeInOut(duration: 0.35), value: expandedNodeIds.contains(node.id))
                             .padding(.top, levelSpacing)
                     }
                 }
@@ -150,7 +152,7 @@ public struct TreeView: View {
     ///   - nodeId: The ID of the node to toggle.
     ///   - isExpanded: The desired expansion state.
     private func toggleNode(_ nodeId: UUID, isExpanded: Bool) {
-        withAnimation(.easeInOut(duration: 0.3)) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
             if isExpanded {
                 expandedNodeIds.insert(nodeId)
             } else {

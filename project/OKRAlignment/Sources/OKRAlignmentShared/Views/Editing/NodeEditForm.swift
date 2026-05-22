@@ -79,6 +79,17 @@ public struct NodeEditForm: View {
     private let inputBackground = Color.white.opacity(0.05)
     private let borderColor = Color.white.opacity(0.1)
     private let labelColor = Color(red: 148/255, green: 163/255, blue: 184/255)
+
+    /// Dynamic border color for title field (red on error, orange near limit, default otherwise)
+    private var titleBorderColor: Color {
+        if titleError != nil {
+            return Color.red.opacity(0.6)
+        } else if title.count > 180 {
+            return Color.orange.opacity(0.4)
+        } else {
+            return borderColor
+        }
+    }
     
     // MARK: - Initialization
     
@@ -135,20 +146,47 @@ public struct NodeEditForm: View {
                 Divider()
                     .background(Color.white.opacity(0.1))
                 
-                // Title field
+                // Title field with real-time validation and character count
                 formField(title: "Title *", error: titleError) {
-                    TextField("Enter OKR title", text: $title)
-                        .font(.system(size: 14))
-                        .foregroundStyle(.white)
-                        .padding(10)
-                        .background(inputBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(titleError != nil ? Color.red.opacity(0.6) : borderColor, lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .onChange(of: title) { validateTitle() }
-                        .accessibilityLabel("Node title")
+                    VStack(alignment: .trailing, spacing: 4) {
+                        TextField("Enter OKR title", text: Binding(
+                            get: { title },
+                            set: { newValue in
+                                // Enforce 200 character limit
+                                if newValue.count <= 200 {
+                                    title = newValue
+                                } else {
+                                    title = String(newValue.prefix(200))
+                                }
+                            }
+                        ))
+                            .font(.system(size: 14))
+                            .foregroundStyle(.white)
+                            .padding(10)
+                            .background(inputBackground)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(titleBorderColor, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .onChange(of: title) { oldValue, newValue in
+                                validateTitle()
+                            }
+                            .accessibilityLabel("Node title")
+                        
+                        // Character count indicator
+                        HStack(spacing: 4) {
+                            if title.count > 180 {
+                                Text("\(title.count)/200")
+                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(title.count >= 200 ? Color.red.opacity(0.8) : Color.orange.opacity(0.8))
+                            } else {
+                                Text("\(title.count)/200")
+                                    .font(.system(size: 11, weight: .regular, design: .monospaced))
+                                    .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255).opacity(0.6))
+                            }
+                        }
+                    }
                 }
                 
                 // Description field
@@ -213,7 +251,7 @@ public struct NodeEditForm: View {
                     }
                 }
                 
-                // Owner field
+                // Owner field with real-time validation
                 formField(title: "Owner *", error: ownerError) {
                     TextField("Enter owner name", text: $ownerName)
                         .font(.system(size: 14))
@@ -225,7 +263,9 @@ public struct NodeEditForm: View {
                                 .stroke(ownerError != nil ? Color.red.opacity(0.6) : borderColor, lineWidth: 1)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .onChange(of: ownerName) { validateOwner() }
+                        .onChange(of: ownerName) { oldValue, newValue in
+                            validateOwner()
+                        }
                         .accessibilityLabel("Owner name")
                 }
                 
