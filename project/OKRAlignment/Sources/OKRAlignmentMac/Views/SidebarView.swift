@@ -289,37 +289,45 @@ struct CycleRow: View {
 
 private func makeSampleCycles() -> [OKRCycle] {
     let calendar = Calendar.current
+    guard let oct1 = calendar.date(from: DateComponents(year: 2024, month: 10, day: 1)),
+          let dec31 = calendar.date(from: DateComponents(year: 2024, month: 12, day: 31)),
+          let jul1 = calendar.date(from: DateComponents(year: 2024, month: 7, day: 1)),
+          let sep30 = calendar.date(from: DateComponents(year: 2024, month: 9, day: 30)),
+          let jan1 = calendar.date(from: DateComponents(year: 2024, month: 1, day: 1)),
+          let nov4 = calendar.date(from: DateComponents(year: 2024, month: 11, day: 4)),
+          let nov15 = calendar.date(from: DateComponents(year: 2024, month: 11, day: 15))
+    else { return [] }
     return [
         OKRCycle(
             id: UUID(),
             name: "Q4 2024",
             description: "Fourth quarter goals",
-            startDate: calendar.date(from: DateComponents(year: 2024, month: 10, day: 1))!,
-            endDate: calendar.date(from: DateComponents(year: 2024, month: 12, day: 31))!,
+            startDate: oct1,
+            endDate: dec31,
             isActive: true
         ),
         OKRCycle(
             id: UUID(),
             name: "Q3 2024",
             description: "Third quarter goals",
-            startDate: calendar.date(from: DateComponents(year: 2024, month: 7, day: 1))!,
-            endDate: calendar.date(from: DateComponents(year: 2024, month: 9, day: 30))!,
+            startDate: jul1,
+            endDate: sep30,
             isActive: false
         ),
         OKRCycle(
             id: UUID(),
             name: "Annual 2024",
             description: "Yearly objectives",
-            startDate: calendar.date(from: DateComponents(year: 2024, month: 1, day: 1))!,
-            endDate: calendar.date(from: DateComponents(year: 2024, month: 12, day: 31))!,
+            startDate: jan1,
+            endDate: dec31,
             isActive: false
         ),
         OKRCycle(
             id: UUID(),
             name: "Sprint 42",
             description: "Engineering sprint",
-            startDate: calendar.date(from: DateComponents(year: 2024, month: 11, day: 4))!,
-            endDate: calendar.date(from: DateComponents(year: 2024, month: 11, day: 15))!,
+            startDate: nov4,
+            endDate: nov15,
             isActive: true
         )
     ]

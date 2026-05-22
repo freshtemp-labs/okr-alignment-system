@@ -492,28 +492,28 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
     /// - Parameters:
     ///   - current: 当前值
     ///   - target: 目标值
-    /// - Returns: 进度值，范围`[0.0, 1.0]`。目标为0时返回0
+    /// - Returns: 进度值，范围`[0.0, 100.0]`。目标为0时返回0
     private func calculateProgress(current: Double, target: Double) -> Double {
         guard target != 0 else { return 0.0 }
-        return min(1.0, max(0.0, current / target))
+        return min(100.0, max(0.0, (current / target) * 100.0))
     }
     
     /// 根据进度值推断节点状态
     ///
-    /// 进度映射规则：
-    /// - `progress == 0.0` → `.notStarted`
-    /// - `progress >= 1.0` → `.completed`
-    /// - `0.0 < progress < 0.3` → `.atRisk`
+    /// 进度映射规则（进度范围 0-100）：
+    /// - `progress <= 0.0` → `.notStarted`
+    /// - `progress >= 100.0` → `.completed`
+    /// - `0.0 < progress < 30.0` → `.atRisk`
     /// - 其他 → `.inProgress`
     ///
-    /// - Parameter progress: 进度值
+    /// - Parameter progress: 进度值（0-100）
     /// - Returns: 推断的节点状态
     private func inferStatus(from progress: Double) -> NodeStatus {
         if progress <= 0.0 {
             return .notStarted
-        } else if progress >= 1.0 {
+        } else if progress >= 100.0 {
             return .completed
-        } else if progress < 0.3 {
+        } else if progress < 30.0 {
             return .atRisk
         } else {
             return .inProgress

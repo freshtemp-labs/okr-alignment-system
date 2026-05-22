@@ -194,6 +194,13 @@ public struct OKRNode: Identifiable, Equatable, Hashable, Sendable {
 
     public static func == (lhs: OKRNode, rhs: OKRNode) -> Bool {
         lhs.id == rhs.id
+            && lhs.title == rhs.title
+            && lhs.progress == rhs.progress
+            && lhs.status == rhs.status
+            && lhs.currentValue == rhs.currentValue
+            && lhs.targetValue == rhs.targetValue
+            && lhs.ownerName == rhs.ownerName
+            && lhs.children == rhs.children
     }
 }
 

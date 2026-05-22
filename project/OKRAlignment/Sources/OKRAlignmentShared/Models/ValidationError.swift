@@ -15,6 +15,9 @@ public enum ValidationError: Error, Equatable, Sendable {
     /// 叶子关键结果缺少数值
     /// 叶子节点（无子节点的KR）必须有当前值和目标值
     case leafMissingValues
+    /// 当前值超出有效范围
+    /// 叶子节点的currentValue不能为负数，也不能超过targetValue
+    case currentValueOutOfRange
 
     /// 父节点类型不匹配
     /// KR的直接子节点必须是个人级Objective
@@ -38,6 +41,8 @@ extension ValidationError {
             return "目标值必须大于0"
         case .leafMissingValues:
             return "叶子节点必须设置当前值和目标值"
+        case .currentValueOutOfRange:
+            return "当前值不能为负数且不能超过目标值"
         case .parentTypeMismatch:
             return "父节点类型不匹配：关键结果的子节点必须是个人级目标"
         case .cycleNotSet:
@@ -54,6 +59,8 @@ extension ValidationError {
             return "目标值错误"
         case .leafMissingValues:
             return "数值缺失"
+        case .currentValueOutOfRange:
+            return "当前值超出范围"
         case .parentTypeMismatch:
             return "层级结构错误"
         case .cycleNotSet:
@@ -80,9 +87,14 @@ extension OKRNode {
 
         // 叶子KR节点必须有数值
         if isLeaf {
-            // 叶子节点需要当前值和目标值都已设置
-            // 当前值允许为0（表示尚未开始）
-            // 目标值已在上方验证大于0
+            // 当前值不能为负数
+            if currentValue < 0 {
+                return .currentValueOutOfRange
+            }
+            // 当前值不能超过目标值（进度不能超过100%）
+            if targetValue > 0 && currentValue > targetValue {
+                return .currentValueOutOfRange
+            }
         }
 
         // 检查是否关联了周期

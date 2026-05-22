@@ -125,8 +125,11 @@ extension OKRCycle {
     /// 用于SwiftUI预览和单元测试
     public static func sampleCycle() -> OKRCycle {
         let calendar = Calendar.current
-        let startDate = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1))!
-        let endDate = calendar.date(from: DateComponents(year: 2026, month: 3, day: 31))!
+        guard let startDate = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1)),
+              let endDate = calendar.date(from: DateComponents(year: 2026, month: 3, day: 31))
+        else {
+            return OKRCycle(name: "2026 Q1", startDate: Date(), endDate: Date(), isActive: true, isArchived: false)
+        }
         return OKRCycle(
             name: "2026 Q1",
             startDate: startDate,
@@ -139,8 +142,11 @@ extension OKRCycle {
     /// 创建示例已归档周期
     public static func sampleArchivedCycle() -> OKRCycle {
         let calendar = Calendar.current
-        let startDate = calendar.date(from: DateComponents(year: 2025, month: 10, day: 1))!
-        let endDate = calendar.date(from: DateComponents(year: 2025, month: 12, day: 31))!
+        guard let startDate = calendar.date(from: DateComponents(year: 2025, month: 10, day: 1)),
+              let endDate = calendar.date(from: DateComponents(year: 2025, month: 12, day: 31))
+        else {
+            return OKRCycle(name: "2025 Q4", startDate: Date(), endDate: Date(), isActive: false, isArchived: true)
+        }
         return OKRCycle(
             name: "2025 Q4",
             startDate: startDate,

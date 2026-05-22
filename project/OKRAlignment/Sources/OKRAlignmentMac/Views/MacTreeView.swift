@@ -344,8 +344,15 @@ public struct MacTreeView: View {
         let allNodes = flattenNodes(from: viewModel.rootNode)
         let availableParents = allNodes.filter { $0.nodeType == .objective }
         
+        let mode: NodeEditForm.Mode = {
+            if let node = editingNode {
+                return .edit(node)
+            }
+            return .create(parentId: selectedNode?.id)
+        }()
+
         NodeEditForm(
-            mode: editingNode != nil ? .edit(editingNode!) : .create(parentId: selectedNode?.id),
+            mode: mode,
             availableParents: availableParents,
             onSave: { node in
                 isEditSheetPresented = false
@@ -388,19 +395,24 @@ public struct MacTreeView: View {
     private func loadInitialData() async {
         // Load sample cycles
         let calendar = Calendar.current
+        guard let oct1 = calendar.date(from: DateComponents(year: 2024, month: 10, day: 1)),
+              let dec31 = calendar.date(from: DateComponents(year: 2024, month: 12, day: 31)),
+              let jul1 = calendar.date(from: DateComponents(year: 2024, month: 7, day: 1)),
+              let sep30 = calendar.date(from: DateComponents(year: 2024, month: 9, day: 30))
+        else { return }
         cycles = [
             OKRCycle(
                 id: UUID(),
                 name: "Q4 2024",
-                startDate: calendar.date(from: DateComponents(year: 2024, month: 10, day: 1))!,
-                endDate: calendar.date(from: DateComponents(year: 2024, month: 12, day: 31))!,
+                startDate: oct1,
+                endDate: dec31,
                 isActive: true
             ),
             OKRCycle(
                 id: UUID(),
                 name: "Q3 2024",
-                startDate: calendar.date(from: DateComponents(year: 2024, month: 7, day: 1))!,
-                endDate: calendar.date(from: DateComponents(year: 2024, month: 9, day: 30))!,
+                startDate: jul1,
+                endDate: sep30,
                 isActive: false
             )
         ]
