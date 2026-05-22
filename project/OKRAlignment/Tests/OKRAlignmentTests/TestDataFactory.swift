@@ -1,5 +1,5 @@
 import Foundation
-@testable import OKRAlignment
+@testable import OKRAlignmentShared
 
 // MARK: - TestDataFactory
 
