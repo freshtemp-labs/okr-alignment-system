@@ -168,13 +168,17 @@ public final class PersistenceController: @unchecked Sendable {
                 #endif
             }
             self?.setupContainer()
-
             #if canImport(CloudKit)
             // 注册 CloudKit 同步通知
             if self?.isCloudKitContainer == true && !inMemory {
                 self?.registerCloudKitNotifications()
             }
             #endif
+
+            // 启动自动备份检查（仅生产环境）
+            if !inMemory {
+                AutoBackupManager.shared.checkAndAutoBackupIfNeeded()
+            }
         }
     }
 
@@ -226,6 +230,16 @@ public final class PersistenceController: @unchecked Sendable {
                 true as NSNumber,
                 forKey: NSInferMappingModelAutomaticallyOption
             )
+            #if os(iOS)
+            // 数据加密：根据用户设置配置文件保护级别
+            let encryptionManager = DataEncryptionManager.shared
+            let protectionLevel = encryptionManager.fileProtectionOption()
+            description?.setOption(
+                protectionLevel as NSString,
+                forKey: NSPersistentStoreFileProtectionKey
+            )
+            Logger.app.info("CoreData 文件保护级别: \(protectionLevel)")
+            #endif
         }
     }
 

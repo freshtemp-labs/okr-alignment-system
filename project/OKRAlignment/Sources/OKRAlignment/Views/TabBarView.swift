@@ -403,6 +403,50 @@ struct iOSSettingsView: View {
                             .foregroundStyle(.tertiaryText)
                     }
 
+                    // 安全与加密 Section
+                    Section {
+                        NavigationLink {
+                            SecuritySettingsView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "lock.shield.fill")
+                                    .foregroundStyle(Color(red: 59/255, green: 130/255, blue: 246/255))
+                                Text("安全与加密")
+                                    .foregroundStyle(.primaryText)
+                            }
+                        }
+
+                        NavigationLink {
+                            BackupSettingsView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .foregroundStyle(Color(red: 16/255, green: 185/255, blue: 129/255))
+                                Text("数据备份")
+                                    .foregroundStyle(.primaryText)
+                            }
+                        }
+
+                        NavigationLink {
+                            ErrorLogView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                    .foregroundStyle(Color(red: 245/255, green: 158/255, blue: 11/255))
+                                Text("错误日志")
+                                    .foregroundStyle(.primaryText)
+                            }
+                        }
+                    } header: {
+                        Text("安全与备份")
+                            .font(.caption)
+                            .foregroundStyle(.secondaryText)
+                    } footer: {
+                        Text("数据加密使用 NSFileProtectionComplete 保护级别。自动备份每天执行一次，保留最近 7 天。")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiaryText)
+                    }
+
                     // 外观Section
                     Section {
                         // 外观模式选择
