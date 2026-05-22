@@ -226,6 +226,17 @@ public final class NodeEditViewModel {
             throw NodeEditError.validationFailed
         }
 
+        // ===== 步骤1.5: 保存前自动清理 =====
+        // 修剪标题前后空格、清理空描述字段
+        let (cleanedNode, cleanups) = node.autoCleanup()
+        node = cleanedNode
+        // 将清理操作记录为非阻断警告
+        for cleanup in cleanups {
+            if !validationErrors.contains(cleanup) {
+                validationErrors.append(cleanup)
+            }
+        }
+
         // ===== 步骤2: 设置保存状态 =====
         // 标记正在保存，防止重复提交
         isSaving = true

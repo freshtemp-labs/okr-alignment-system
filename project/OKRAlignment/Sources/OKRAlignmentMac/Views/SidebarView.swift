@@ -40,6 +40,9 @@ public struct SidebarView: View {
     /// Callback when the import button is tapped.
     let onImport: (() -> Void)?
     
+    /// Callback when the analytics button is tapped.
+    let onAnalytics: (() -> Void)?
+    
     /// Search text for filtering cycles.
     @State private var searchText: String = ""
     
@@ -65,7 +68,8 @@ public struct SidebarView: View {
         onArchiveCycle: ((UUID) -> Void)? = nil,
         onActivateCycle: ((UUID) -> Void)? = nil,
         onExport: (() -> Void)? = nil,
-        onImport: (() -> Void)? = nil
+        onImport: (() -> Void)? = nil,
+        onAnalytics: (() -> Void)? = nil
     ) {
         self.cycles = cycles
         self._selectedCycleId = selectedCycleId
@@ -75,6 +79,7 @@ public struct SidebarView: View {
         self.onActivateCycle = onActivateCycle
         self.onExport = onExport
         self.onImport = onImport
+        self.onAnalytics = onAnalytics
     }
     
     // MARK: - Computed Properties
@@ -288,6 +293,27 @@ public struct SidebarView: View {
                         .accessibilityLabel("Export OKR data")
                         .accessibilityHint("Opens a save dialog to export OKR data as JSON or CSV")
                     }
+                }
+                
+                // Analytics button
+                if onAnalytics != nil {
+                    Button {
+                        onAnalytics?()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chart.bar.fill")
+                                .font(.system(size: 12))
+                            Text("Analytics")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                        .frame(maxWidth: .infinity, minHeight: 28)
+                        .background(Color.white.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("View analytics")
+                    .accessibilityHint("Opens the analytics dashboard")
                 }
             }
             .padding(.horizontal, 12)

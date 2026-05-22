@@ -1,8 +1,8 @@
 import Foundation
 
-/// ============================================================================
+/// ====================================================================
 /// MARK: - NodeValidator
-/// ============================================================================
+/// ====================================================================
 
 /// 节点验证器
 /// ========
@@ -34,6 +34,13 @@ import Foundation
 ///    - 每个节点必须关联到一个OKR周期
 ///    - cycleId为nil表示未设置周期
 ///
+/// ## 6. KR目标值验证（Rule-06）
+///    - 所有Key Result节点的targetValue必须大于0
+///    - 不仅限于叶子节点
+///
+/// ## 7. 周期日期范围验证（Rule-07）
+///    - 周期的结束日期必须晚于开始日期
+///
 /// # 使用方式
 /// ```swift
 /// let validator = NodeValidator()
@@ -62,6 +69,7 @@ public struct NodeValidator: Sendable {
     /// 2. 叶子KR的目标值有效性验证
     /// 3. 叶子KR的完整性验证
     /// 4. 周期设置验证
+    /// 5. KR目标值验证（所有KR节点）
     ///
     /// - Parameter node: 要验证的OKR节点
     /// - Returns: 按验证顺序收集的所有ValidationError
@@ -103,8 +111,79 @@ public struct NodeValidator: Sendable {
             errors.append(.cycleNotSet)
         }
 
+        // ===== 规则6: 所有KR节点的目标值验证 =====
+        // 不仅叶子KR，所有Key Result节点的targetValue必须大于0
+        if node.nodeType == .keyResult && node.targetValue <= 0 {
+            // 避免与规则2重复
+            if !errors.contains(.invalidTargetValue) {
+                errors.append(.krTargetValueMustBePositive)
+            }
+        }
+
         // 返回收集到的所有验证错误（空数组表示全部通过）
         return errors
+    }
+
+    // MARK: - 周期验证
+
+    /// 验证周期数据的合法性
+    /// - Parameter cycle: 要验证的周期
+    /// - Returns: 验证错误数组，空数组表示验证通过
+    public func validateCycle(_ cycle: OKRCycle) -> [ValidationError] {
+        var errors: [ValidationError] = []
+
+        // 周期名称不能为空
+        if cycle.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            errors.append(.emptyTitle)
+        }
+
+        // 结束日期必须晚于开始日期
+        if cycle.endDate <= cycle.startDate {
+            errors.append(.invalidCycleDateRange)
+        }
+
+        return errors
+    }
+
+    // MARK: - 删除警告
+
+    /// 计算删除节点时的子节点警告
+    /// - Parameter node: 要删除的节点
+    /// - Returns: 删除警告信息，nil表示没有子节点
+    public func calculateDeleteWarning(for node: OKRNode) -> DeleteWarning? {
+        let childCount = countDescendants(node)
+        guard childCount > 0 else { return nil }
+        return DeleteWarning(directDeleteCount: 1, cascadeDeleteCount: childCount)
+    }
+
+    /// 计算批量删除的警告信息
+    /// - Parameter nodes: 要删除的节点数组
+    /// - Returns: 删除警告信息
+    public func calculateBatchDeleteWarning(for nodes: [OKRNode]) -> DeleteWarning {
+        var totalChildren = 0
+        for node in nodes {
+            totalChildren += countDescendants(node)
+        }
+        return DeleteWarning(directDeleteCount: nodes.count, cascadeDeleteCount: totalChildren)
+    }
+
+    /// 递归统计后代节点数量
+    private func countDescendants(_ node: OKRNode) -> Int {
+        var count = node.children.count
+        for child in node.children {
+            count += countDescendants(child)
+        }
+        return count
+    }
+
+    // MARK: - 保存前自动清理
+
+    /// 对节点执行保存前的自动清理
+    /// - Parameter node: 原始节点
+    /// - Returns: 清理后的节点
+    public func autoCleanup(_ node: OKRNode) -> OKRNode {
+        let (cleaned, _) = node.autoCleanup()
+        return cleaned
     }
 
     // MARK: - 批量验证

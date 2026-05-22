@@ -67,6 +67,19 @@ public struct MacTreeView: View {
     /// Status message for data operations.
     @State private var dataOperationMessage: String? = nil
     
+    /// Whether the analytics view is shown.
+    @State private var showAnalytics: Bool = false
+    
+    /// Batch operation ViewModel.
+    @State private var batchViewModel = BatchOperationViewModel(
+        repository: CoreDataOKRRepository(container: PersistenceController.shared.container)
+    )
+    
+    /// Analytics ViewModel.
+    @State private var analyticsViewModel = AnalyticsViewModel(
+        repository: CoreDataOKRRepository(container: PersistenceController.shared.container)
+    )
+    
     // MARK: - Constants
     
     private let detailMinWidth: CGFloat = 260
@@ -95,7 +108,8 @@ public struct MacTreeView: View {
                     }
                 },
                 onExport: { showExportPanel() },
-                onImport: { showImportPanel() }
+                onImport: { showImportPanel() },
+                onAnalytics: { showAnalytics = true }
             )
             .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
         } detail: {
@@ -144,11 +158,82 @@ public struct MacTreeView: View {
             }
         } message: {
             if let node = selectedNode {
-                Text("Are you sure you want to delete \"\(node.title)\"? This action cannot be undone.")
+                let warning = NodeValidator().calculateDeleteWarning(for: node)
+                if let warning = warning {
+                    Text("确定要删除 \"\(node.title)\" 吗？\(warning.message)。此操作不可撤销。")
+                } else {
+                    Text("Are you sure you want to delete \"\(node.title)\"? This action cannot be undone.")
+                }
             }
         }
         .sheet(isPresented: $showNewCycleSheet) {
             newCycleSheet
+        }
+        .sheet(isPresented: $showAnalytics) {
+            NavigationStack {
+                AnalyticsView(viewModel: analyticsViewModel, cycleId: selectedCycleId)
+            }
+            .frame(minWidth: 700, minHeight: 500)
+        }
+        .alert("批量删除确认", isPresented: $batchViewModel.showDeleteConfirmation) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
+                if let root = viewModel.rootNode {
+                    Task {
+                        let refreshed = await batchViewModel.batchDelete(
+                            selectedIds: batchViewModel.selectedNodeIds,
+                            in: root
+                        )
+                        if refreshed {
+                            await viewModel.refresh()
+                        }
+                    }
+                }
+            }
+        } message: {
+            if let root = viewModel.rootNode {
+                let warning = batchViewModel.calculateDeleteWarning(
+                    selectedIds: batchViewModel.selectedNodeIds,
+                    in: root
+                )
+                Text(warning.isEmpty ? "确定要删除选中的 \(batchViewModel.selectedCount) 个节点吗？" : warning)
+            }
+        }
+        .sheet(isPresented: $batchViewModel.showOwnerUpdateSheet) {
+            NavigationStack {
+                VStack(spacing: 20) {
+                    Text("批量更新负责人")
+                        .font(.headline)
+                    TextField("新的负责人名称", text: $batchViewModel.newOwnerName)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 300)
+                    HStack {
+                        Button("取消") {
+                            batchViewModel.showOwnerUpdateSheet = false
+                        }
+                        .keyboardShortcut(.cancelAction)
+                        Button("确认更新") {
+                            if let root = viewModel.rootNode {
+                                Task {
+                                    let updatedRoot = await batchViewModel.batchUpdateOwner(
+                                        newOwner: batchViewModel.newOwnerName,
+                                        selectedIds: batchViewModel.selectedNodeIds,
+                                        in: root
+                                    )
+                                    if updatedRoot != nil {
+                                        batchViewModel.showOwnerUpdateSheet = false
+                                        await viewModel.refresh()
+                                    }
+                                }
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(batchViewModel.newOwnerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+                .padding(30)
+                .frame(minWidth: 400)
+            }
         }
         // Escape key to dismiss sheets/alerts
         .onExitCommand {
@@ -362,6 +447,79 @@ public struct MacTreeView: View {
             .keyboardShortcut("f", modifiers: .command)
             .accessibilityLabel("Toggle search")
             .accessibilityHint(isSearchActive ? "Close search field" : "Open search field to search OKRs")
+            
+            Divider()
+            
+            // Multi-select toggle
+            Button {
+                batchViewModel.toggleMultiSelectMode()
+            } label: {
+                Label(
+                    batchViewModel.isMultiSelectMode ? "Exit Select" : "Multi-Select",
+                    systemImage: batchViewModel.isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle"
+                )
+            }
+            .help("Toggle multi-select mode")
+            .tint(batchViewModel.isMultiSelectMode ? .blue : nil)
+            
+            // Batch operations (visible in multi-select mode)
+            if batchViewModel.isMultiSelectMode {
+                // Batch delete
+                Button {
+                    if let root = viewModel.rootNode {
+                        let warning = batchViewModel.calculateDeleteWarning(
+                            selectedIds: batchViewModel.selectedNodeIds,
+                            in: root
+                        )
+                        batchViewModel.deleteWarningMessage = warning
+                        batchViewModel.showDeleteConfirmation = true
+                    }
+                } label: {
+                    Label("Batch Delete", systemImage: "trash")
+                }
+                .disabled(!batchViewModel.hasSelection)
+                .help("Delete selected nodes")
+                
+                // Batch update owner
+                Button {
+                    batchViewModel.newOwnerName = ""
+                    batchViewModel.showOwnerUpdateSheet = true
+                } label: {
+                    Label("Batch Owner", systemImage: "person.2")
+                }
+                .disabled(!batchViewModel.hasSelection)
+                .help("Update owner for selected nodes")
+                
+                // Batch export
+                Button {
+                    if let root = viewModel.rootNode {
+                        let csv = batchViewModel.batchExportCSV(
+                            selectedIds: batchViewModel.selectedNodeIds,
+                            in: root
+                        )
+                        // Use NSSavePanel to save
+                        #if os(macOS)
+                        let panel = NSSavePanel()
+                        panel.title = "Export Selected Nodes"
+                        panel.allowedContentTypes = [.commaSeparatedText]
+                        panel.nameFieldStringValue = "okr-selection-export"
+                        panel.begin { response in
+                            guard response == .OK, let url = panel.url else { return }
+                            try? csv.write(to: url, atomically: true, encoding: .utf8)
+                        }
+                        #endif
+                    }
+                } label: {
+                    Label("Batch Export", systemImage: "square.and.arrow.up")
+                }
+                .disabled(!batchViewModel.hasSelection)
+                .help("Export selected nodes as CSV")
+                
+                // Selection count badge
+                Text("\(batchViewModel.selectedCount) selected")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
     
