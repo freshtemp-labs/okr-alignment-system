@@ -597,31 +597,16 @@ public struct MacTreeView: View {
     // MARK: - Data Loading
     
     private func loadInitialData() async {
-        // Load sample cycles
-        let calendar = Calendar.current
-        guard let oct1 = calendar.date(from: DateComponents(year: 2024, month: 10, day: 1)),
-              let dec31 = calendar.date(from: DateComponents(year: 2024, month: 12, day: 31)),
-              let jul1 = calendar.date(from: DateComponents(year: 2024, month: 7, day: 1)),
-              let sep30 = calendar.date(from: DateComponents(year: 2024, month: 9, day: 30))
-        else { return }
-        cycles = [
-            OKRCycle(
-                id: UUID(),
-                name: "Q4 2024",
-                startDate: oct1,
-                endDate: dec31,
-                isActive: true
-            ),
-            OKRCycle(
-                id: UUID(),
-                name: "Q3 2024",
-                startDate: jul1,
-                endDate: sep30,
-                isActive: false
-            )
-        ]
-        
-        // Select first cycle and load tree
+        // DEBUG模式下：首次启动时加载示例数据
+        #if DEBUG
+        PersistenceController.shared.loadSampleDataIfNeeded()
+        #endif
+
+        // 从Core Data加载周期列表
+        await cycleViewModel.loadCycles()
+        cycles = cycleViewModel.cycles
+
+        // 选中第一个周期并加载对应的OKR树
         if let firstCycle = cycles.first {
             selectedCycleId = firstCycle.id
             await viewModel.loadTree(cycleId: firstCycle.id)
