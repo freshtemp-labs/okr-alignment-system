@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import OKRAlignmentShared
 
@@ -380,3 +381,5 @@ struct iOSTreeView: View {
         .environment(CycleListViewModel(repository: previewRepo))
         .preferredColorScheme(.dark)
 }
+
+#endif

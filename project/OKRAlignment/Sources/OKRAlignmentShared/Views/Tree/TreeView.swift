@@ -108,12 +108,11 @@ public struct TreeView: View {
     /// Recursively renders a subtree starting from an array of sibling nodes.
     /// - Parameter nodes: The sibling nodes at this level.
     /// - Returns: A view containing the rendered subtree.
-    @ViewBuilder
-    private func childTreeView(for nodes: [OKRNode]) -> some View {
+    private func childTreeView(for nodes: [OKRNode]) -> AnyView {
         if nodes.isEmpty {
-            EmptyView()
+            return AnyView(EmptyView())
         } else {
-            VStack(spacing: 0) {
+            return AnyView(VStack(spacing: 0) {
                 // Connector lines from parent to this row
                 TreeConnector(
                     childCount: nodes.count,
@@ -140,7 +139,7 @@ public struct TreeView: View {
                             .padding(.top, levelSpacing)
                     }
                 }
-            }
+            })
         }
     }
     
@@ -191,86 +190,90 @@ private func makeTreeNode(
         progress: progress,
         status: .inProgress,
         ownerName: ownerName,
-        createdAt: Date(),
-        updatedAt: Date(),
         sortOrder: 0,
         parentId: nil,
         children: children,
-        cycleId: nil
+        cycleId: nil,
+        createdAt: Date(),
+        updatedAt: Date()
     )
 }
 
 // MARK: - Previews
 
-#Preview("Simple Tree - 2 Levels") {
-    let root = makeTreeNode(
-        title: "Q4 Company Objective",
-        nodeType: .objective,
-        scope: .enterprise,
-        progress: 65.0,
-        ownerName: "CEO",
-        children: [
-            makeTreeNode(title: "Increase revenue by 30%", nodeType: .keyResult, scope: .personal, progress: 80.0, ownerName: "Sales Lead"),
-            makeTreeNode(title: "Launch 3 new features", nodeType: .keyResult, scope: .personal, progress: 50.0, ownerName: "Product Mgr"),
-            makeTreeNode(title: "Reduce churn to 5%", nodeType: .keyResult, scope: .personal, progress: 65.0, ownerName: "CS Lead")
-        ]
-    )
-    
-    TreeView(
-        rootNode: root,
-        onNodeTap: { _ in },
-        onUpdateProgress: { _, _ in }
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Simple Tree - 2 Levels") {
+//     let root = makeTreeNode(
+//         title: "Q4 Company Objective",
+//         nodeType: .objective,
+//         scope: .enterprise,
+//         progress: 65.0,
+//         ownerName: "CEO",
+//         children: [
+//             makeTreeNode(title: "Increase revenue by 30%", nodeType: .keyResult, scope: .personal, progress: 80.0, ownerName: "Sales Lead"),
+//             makeTreeNode(title: "Launch 3 new features", nodeType: .keyResult, scope: .personal, progress: 50.0, ownerName: "Product Mgr"),
+//             makeTreeNode(title: "Reduce churn to 5%", nodeType: .keyResult, scope: .personal, progress: 65.0, ownerName: "CS Lead")
+//         ]
+//     )
+//     
+//     TreeView(
+//         rootNode: root,
+//         onNodeTap: { _ in },
+//         onUpdateProgress: { _, _ in }
+//     )
+// }
 
-#Preview("Deep Tree - 3 Levels") {
-    let level3 = [
-        makeTreeNode(title: "Sub-KR A1", nodeType: .keyResult, scope: .personal, progress: 75, ownerName: "Engineer 1"),
-        makeTreeNode(title: "Sub-KR A2", nodeType: .keyResult, scope: .personal, progress: 60, ownerName: "Engineer 2")
-    ]
-    
-    let level2 = [
-        makeTreeNode(title: "Launch Feature X", nodeType: .objective, scope: .personal, progress: 70, ownerName: "Team A", children: level3),
-        makeTreeNode(title: "Launch Feature Y", nodeType: .keyResult, scope: .personal, progress: 45, ownerName: "Team B"),
-        makeTreeNode(title: "Launch Feature Z", nodeType: .keyResult, scope: .personal, progress: 90, ownerName: "Team C")
-    ]
-    
-    let root = makeTreeNode(
-        title: "Annual Product Goal",
-        nodeType: .objective,
-        scope: .enterprise,
-        progress: 68.0,
-        ownerName: "CTO",
-        children: level2
-    )
-    
-    TreeView(
-        rootNode: root,
-        onNodeTap: { _ in },
-        onUpdateProgress: { _, _ in }
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Deep Tree - 3 Levels") {
+//     let level3 = [
+//         makeTreeNode(title: "Sub-KR A1", nodeType: .keyResult, scope: .personal, progress: 75, ownerName: "Engineer 1"),
+//         makeTreeNode(title: "Sub-KR A2", nodeType: .keyResult, scope: .personal, progress: 60, ownerName: "Engineer 2")
+//     ]
+//     
+//     let level2 = [
+//         makeTreeNode(title: "Launch Feature X", nodeType: .objective, scope: .personal, progress: 70, ownerName: "Team A", children: level3),
+//         makeTreeNode(title: "Launch Feature Y", nodeType: .keyResult, scope: .personal, progress: 45, ownerName: "Team B"),
+//         makeTreeNode(title: "Launch Feature Z", nodeType: .keyResult, scope: .personal, progress: 90, ownerName: "Team C")
+//     ]
+//     
+//     let root = makeTreeNode(
+//         title: "Annual Product Goal",
+//         nodeType: .objective,
+//         scope: .enterprise,
+//         progress: 68.0,
+//         ownerName: "CTO",
+//         children: level2
+//     )
+//     
+//     TreeView(
+//         rootNode: root,
+//         onNodeTap: { _ in },
+//         onUpdateProgress: { _, _ in }
+//     )
+// }
 
-#Preview("No Root Node") {
-    TreeView(
-        rootNode: nil,
-        onNodeTap: { _ in },
-        onUpdateProgress: nil
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("No Root Node") {
+//     TreeView(
+//         rootNode: nil,
+//         onNodeTap: { _ in },
+//         onUpdateProgress: nil
+//     )
+// }
 
-#Preview("Single Root Only") {
-    let root = makeTreeNode(
-        title: "Standalone Objective",
-        nodeType: .objective,
-        scope: .enterprise,
-        progress: 50.0,
-        ownerName: "Director"
-    )
-    
-    TreeView(
-        rootNode: root,
-        onNodeTap: { _ in },
-        onUpdateProgress: nil
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Single Root Only") {
+//     let root = makeTreeNode(
+//         title: "Standalone Objective",
+//         nodeType: .objective,
+//         scope: .enterprise,
+//         progress: 50.0,
+//         ownerName: "Director"
+//     )
+//     
+//     TreeView(
+//         rootNode: root,
+//         onNodeTap: { _ in },
+//         onUpdateProgress: nil
+//     )
+// }

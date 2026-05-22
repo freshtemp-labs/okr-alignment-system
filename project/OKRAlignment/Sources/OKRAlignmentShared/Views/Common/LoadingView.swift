@@ -141,29 +141,34 @@ public struct LoadingOverlay: View {
 
 // MARK: - Previews
 
-#Preview("Default Loading") {
-    LoadingView()
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Default Loading") {
+//     LoadingView()
+// }
 
-#Preview("Custom Message") {
-    LoadingView(message: "Loading OKR tree...")
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Custom Message") {
+//     LoadingView(message: "Loading OKR tree...")
+// }
 
-#Preview("Small - Loading Data") {
-    LoadingView(message: "Fetching cycles", controlSize: .small)
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Small - Loading Data") {
+//     LoadingView(message: "Fetching cycles", controlSize: .small)
+// }
 
-#Preview("Large - Initializing") {
-    LoadingView(message: "Preparing your workspace", controlSize: .large)
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Large - Initializing") {
+//     LoadingView(message: "Preparing your workspace", controlSize: .large)
+// }
 
-#Preview("Loading Overlay") {
-    ZStack {
-        Color(red: 15/255, green: 23/255, blue: 42/255)
-        
-        Text("Background Content")
-            .foregroundStyle(.white)
-        
-        LoadingOverlay(isVisible: true, message: "Refreshing data...")
-    }
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Loading Overlay") {
+//     ZStack {
+//         Color(red: 15/255, green: 23/255, blue: 42/255)
+//         
+//         Text("Background Content")
+//             .foregroundStyle(.white)
+//         
+//         LoadingOverlay(isVisible: true, message: "Refreshing data...")
+//     }
+// }

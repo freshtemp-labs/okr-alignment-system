@@ -153,6 +153,7 @@ extension OKRAlignmentMacApp {
 }
 #endif
 
+#if !SWIFT_PACKAGE
 // MARK: - Previews
 
 #Preview("Mac App Window") {
@@ -160,3 +161,4 @@ extension OKRAlignmentMacApp {
         .preferredColorScheme(.dark)
         .frame(width: 1200, height: 800)
 }
+#endif

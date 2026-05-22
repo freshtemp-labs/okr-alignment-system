@@ -77,12 +77,12 @@ enum EntityToDomainMapper {
             progress: entity.progress,
             status: status,
             ownerName: entity.ownerName,
-            createdAt: entity.createdAt,
-            updatedAt: entity.updatedAt,
             sortOrder: Int(entity.sortOrder),
             parentId: parentId,
             children: mappedChildren,
-            cycleId: cycleId
+            cycleId: cycleId,
+            createdAt: entity.createdAt,
+            updatedAt: entity.updatedAt
         )
     }
     

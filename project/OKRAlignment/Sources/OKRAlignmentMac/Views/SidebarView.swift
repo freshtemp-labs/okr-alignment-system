@@ -73,9 +73,31 @@ public struct SidebarView: View {
             return cycles
         }
         return cycles.filter { cycle in
-            cycle.name.localizedCaseInsensitiveContains(searchText) ||
-            cycle.description?.localizedCaseInsensitiveContains(searchText) == true
+            cycle.name.localizedCaseInsensitiveContains(searchText)
         }
+    }
+    
+    // MARK: - Row Builder
+    
+    /// Extracted row builder to reduce type-checker complexity.
+    @ViewBuilder
+    private func cycleListRow(for cycle: OKRCycle) -> some View {
+        let isSelected = selectedCycleId == cycle.id
+        let rowBackground: Color = isSelected ? selectionColor : Color.clear
+        
+        CycleRow(cycle: cycle, isSelected: isSelected)
+            .tag(cycle.id)
+            .listRowBackground(rowBackground)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
+            .contextMenu {
+                Button("Delete") {
+                    onDeleteCycle(cycle.id)
+                }
+            }
+            .accessibilityLabel("Cycle: \(cycle.name)")
+            .accessibilityValue(cycle.isActive ? "Active" : "Inactive")
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
     
     // MARK: - Body
@@ -142,28 +164,13 @@ public struct SidebarView: View {
             List(selection: $selectedCycleId) {
                 Section {
                     ForEach(filteredCycles) { cycle in
-                        CycleRow(
-                            cycle: cycle,
-                            isSelected: selectedCycleId == cycle.id
-                        )
-                        .tag(cycle.id)
-                        .listRowBackground(selectedCycleId == cycle.id ? selectionColor : Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
-                        .contextMenu {
-                            Button {
-                                onDeleteCycle(cycle.id)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                        .accessibilityLabel("Cycle: \(cycle.name)")
-                        .accessibilityValue(cycle.isActive ? "Active" : "Inactive")
-                        .accessibilitySelected(selectedCycleId == cycle.id)
+                        cycleListRow(for: cycle)
                     }
                 } header: {
                     if !searchText.isEmpty {
-                        Text("\(filteredCycles.count) result\(filteredCycles.count == 1 ? "" : "s")")
+                        let resultCount = filteredCycles.count
+                        let suffix = resultCount == 1 ? "" : "s"
+                        Text("\(resultCount) result\(suffix)")
                             .font(.system(size: 10))
                             .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
                     }
@@ -205,47 +212,7 @@ public struct SidebarView: View {
     }
 }
 
-// MARK: - OKRCycle Model
-
-/// A model representing an OKR cycle/period.
-public struct OKRCycle: Identifiable, Equatable, Hashable, Sendable {
-    /// Unique identifier for the cycle.
-    public let id: UUID
-    
-    /// The name of the cycle (e.g., "Q4 2024").
-    public var name: String
-    
-    /// Optional description of the cycle.
-    public var description: String?
-    
-    /// The start date of the cycle.
-    public var startDate: Date
-    
-    /// The end date of the cycle.
-    public var endDate: Date
-    
-    /// Whether this cycle is currently active.
-    public var isActive: Bool
-    
-    /// Creates a new cycle.
-    public init(
-        id: UUID = UUID(),
-        name: String,
-        description: String? = nil,
-        startDate: Date,
-        endDate: Date,
-        isActive: Bool = true
-    ) {
-        self.id = id
-        self.name = name
-        self.description = description
-        self.startDate = startDate
-        self.endDate = endDate
-        self.isActive = isActive
-    }
-}
-
-// MARK: - CycleRow
+// MARK: - CycleRow (uses shared OKRCycle from OKRAlignmentShared)
 
 /// A single row in the sidebar cycle list.
 struct CycleRow: View {
@@ -285,13 +252,14 @@ struct CycleRow: View {
     }
 }
 
-// MARK: - Preview Helpers
+// MARK: - Preview Helpers (shared OKRCycle)
 
 private func makeSampleCycles() -> [OKRCycle] {
     let calendar = Calendar.current
-    guard let oct1 = calendar.date(from: DateComponents(year: 2024, month: 10, day: 1)),
-          let dec31 = calendar.date(from: DateComponents(year: 2024, month: 12, day: 31)),
-          let jul1 = calendar.date(from: DateComponents(year: 2024, month: 7, day: 1)),
+    guard let oct1 = calendar.date(from: DateComponents(year: 2024, month: 10, day: 1))
+    else { return [] }
+    let dec31 = calendar.date(from: DateComponents(year: 2024, month: 12, day: 31))!
+    guard let jul1 = calendar.date(from: DateComponents(year: 2024, month: 7, day: 1)),
           let sep30 = calendar.date(from: DateComponents(year: 2024, month: 9, day: 30)),
           let jan1 = calendar.date(from: DateComponents(year: 2024, month: 1, day: 1)),
           let nov4 = calendar.date(from: DateComponents(year: 2024, month: 11, day: 4)),
@@ -301,7 +269,6 @@ private func makeSampleCycles() -> [OKRCycle] {
         OKRCycle(
             id: UUID(),
             name: "Q4 2024",
-            description: "Fourth quarter goals",
             startDate: oct1,
             endDate: dec31,
             isActive: true
@@ -309,7 +276,6 @@ private func makeSampleCycles() -> [OKRCycle] {
         OKRCycle(
             id: UUID(),
             name: "Q3 2024",
-            description: "Third quarter goals",
             startDate: jul1,
             endDate: sep30,
             isActive: false
@@ -317,7 +283,6 @@ private func makeSampleCycles() -> [OKRCycle] {
         OKRCycle(
             id: UUID(),
             name: "Annual 2024",
-            description: "Yearly objectives",
             startDate: jan1,
             endDate: dec31,
             isActive: false
@@ -325,7 +290,6 @@ private func makeSampleCycles() -> [OKRCycle] {
         OKRCycle(
             id: UUID(),
             name: "Sprint 42",
-            description: "Engineering sprint",
             startDate: nov4,
             endDate: nov15,
             isActive: true
@@ -333,6 +297,7 @@ private func makeSampleCycles() -> [OKRCycle] {
     ]
 }
 
+#if !SWIFT_PACKAGE
 // MARK: - Previews
 
 #Preview("Sidebar with Cycles") {
@@ -358,3 +323,4 @@ private func makeSampleCycles() -> [OKRCycle] {
         onDeleteCycle: { _ in }
     )
 }
+#endif

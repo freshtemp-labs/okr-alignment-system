@@ -227,118 +227,122 @@ private func makeSampleNode(
         progress: progress,
         status: status,
         ownerName: ownerName,
-        createdAt: Date(),
-        updatedAt: Date(),
         sortOrder: 0,
         parentId: nil,
         children: children,
-        cycleId: nil
+        cycleId: nil,
+        createdAt: Date(),
+        updatedAt: Date()
     )
 }
 
 // MARK: - Previews
 
-#Preview("Enterprise Objective") {
-    @Previewable @State var expanded = true
-    
-    let node = makeSampleNode(
-        title: "Increase Q4 Revenue by 25%",
-        nodeType: .objective,
-        scope: .enterprise,
-        currentValue: 0,
-        targetValue: 0,
-        unit: nil,
-        progress: 68.5,
-        status: .inProgress,
-        ownerName: "Alice Chen",
-        children: [makeSampleNode(title: "Child", nodeType: .keyResult, scope: .enterprise, currentValue: 50, targetValue: 100, unit: "%", progress: 50, status: .inProgress, ownerName: "Bob")]
-    )
-    
-    OKRNodeCard(
-        node: node,
-        isExpanded: $expanded,
-        onTap: {},
-        onUpdateProgress: nil
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Enterprise Objective") {
+//     @Previewable @State var expanded = true
+//     
+//     let node = makeSampleNode(
+//         title: "Increase Q4 Revenue by 25%",
+//         nodeType: .objective,
+//         scope: .enterprise,
+//         currentValue: 0,
+//         targetValue: 0,
+//         unit: nil,
+//         progress: 68.5,
+//         status: .inProgress,
+//         ownerName: "Alice Chen",
+//         children: [makeSampleNode(title: "Child", nodeType: .keyResult, scope: .enterprise, currentValue: 50, targetValue: 100, unit: "%", progress: 50, status: .inProgress, ownerName: "Bob")]
+//     )
+//     
+//     OKRNodeCard(
+//         node: node,
+//         isExpanded: $expanded,
+//         onTap: {},
+//         onUpdateProgress: nil
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Personal Key Result") {
-    @Previewable @State var expanded = false
-    
-    let node = makeSampleNode(
-        title: "Launch new onboarding flow",
-        nodeType: .keyResult,
-        scope: .personal,
-        currentValue: 3,
-        targetValue: 5,
-        unit: "features",
-        progress: 60.0,
-        status: .inProgress,
-        ownerName: "Bob Smith"
-    )
-    
-    OKRNodeCard(
-        node: node,
-        isExpanded: $expanded,
-        onTap: {},
-        onUpdateProgress: { _, _ in }
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Personal Key Result") {
+//     @Previewable @State var expanded = false
+//     
+//     let node = makeSampleNode(
+//         title: "Launch new onboarding flow",
+//         nodeType: .keyResult,
+//         scope: .personal,
+//         currentValue: 3,
+//         targetValue: 5,
+//         unit: "features",
+//         progress: 60.0,
+//         status: .inProgress,
+//         ownerName: "Bob Smith"
+//     )
+//     
+//     OKRNodeCard(
+//         node: node,
+//         isExpanded: $expanded,
+//         onTap: {},
+//         onUpdateProgress: { _, _ in }
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Completed Leaf KR") {
-    @Previewable @State var expanded = false
-    
-    let node = makeSampleNode(
-        title: "Reduce customer churn to 5%",
-        nodeType: .keyResult,
-        scope: .enterprise,
-        currentValue: 100,
-        targetValue: 100,
-        unit: "%",
-        progress: 100.0,
-        status: .completed,
-        ownerName: "Carol Lee"
-    )
-    
-    OKRNodeCard(
-        node: node,
-        isExpanded: $expanded,
-        onTap: {},
-        onUpdateProgress: { _, _ in }
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Completed Leaf KR") {
+//     @Previewable @State var expanded = false
+//     
+//     let node = makeSampleNode(
+//         title: "Reduce customer churn to 5%",
+//         nodeType: .keyResult,
+//         scope: .enterprise,
+//         currentValue: 100,
+//         targetValue: 100,
+//         unit: "%",
+//         progress: 100.0,
+//         status: .completed,
+//         ownerName: "Carol Lee"
+//     )
+//     
+//     OKRNodeCard(
+//         node: node,
+//         isExpanded: $expanded,
+//         onTap: {},
+//         onUpdateProgress: { _, _ in }
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("At Risk Objective") {
-    @Previewable @State var expanded = true
-    
-    let node = makeSampleNode(
-        title: "Expand to European markets",
-        nodeType: .objective,
-        scope: .enterprise,
-        currentValue: 0,
-        targetValue: 0,
-        unit: nil,
-        progress: 23.0,
-        status: .atRisk,
-        ownerName: "David Park",
-        children: [
-            makeSampleNode(title: "KR1", nodeType: .keyResult, scope: .enterprise, currentValue: 10, targetValue: 100, unit: "%", progress: 10, status: .atRisk, ownerName: "Team A"),
-            makeSampleNode(title: "KR2", nodeType: .keyResult, scope: .personal, currentValue: 35, targetValue: 100, unit: "%", progress: 35, status: .inProgress, ownerName: "Team B")
-        ]
-    )
-    
-    OKRNodeCard(
-        node: node,
-        isExpanded: $expanded,
-        onTap: {},
-        onUpdateProgress: nil
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("At Risk Objective") {
+//     @Previewable @State var expanded = true
+//     
+//     let node = makeSampleNode(
+//         title: "Expand to European markets",
+//         nodeType: .objective,
+//         scope: .enterprise,
+//         currentValue: 0,
+//         targetValue: 0,
+//         unit: nil,
+//         progress: 23.0,
+//         status: .atRisk,
+//         ownerName: "David Park",
+//         children: [
+//             makeSampleNode(title: "KR1", nodeType: .keyResult, scope: .enterprise, currentValue: 10, targetValue: 100, unit: "%", progress: 10, status: .atRisk, ownerName: "Team A"),
+//             makeSampleNode(title: "KR2", nodeType: .keyResult, scope: .personal, currentValue: 35, targetValue: 100, unit: "%", progress: 35, status: .inProgress, ownerName: "Team B")
+//         ]
+//     )
+//     
+//     OKRNodeCard(
+//         node: node,
+//         isExpanded: $expanded,
+//         onTap: {},
+//         onUpdateProgress: nil
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }

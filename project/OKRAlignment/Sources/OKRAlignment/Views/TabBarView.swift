@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import OKRAlignmentShared
 
@@ -541,3 +542,5 @@ extension EnvironmentValues {
     iOSSettingsView()
         .preferredColorScheme(.dark)
 }
+
+#endif

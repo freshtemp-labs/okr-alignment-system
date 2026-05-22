@@ -22,7 +22,9 @@ public struct MacTreeView: View {
     // MARK: - Properties
     
     /// The view model managing tree data and state.
-    @State private var viewModel = TreeViewModel()
+    @State private var viewModel = TreeViewModel(
+        repository: CoreDataOKRRepository(container: PersistenceController.shared.container)
+    )
     
     /// The currently selected node for detail display.
     @State private var selectedNode: OKRNode? = nil
@@ -482,8 +484,10 @@ struct DetailItem: View {
     }
 }
 
+#if !SWIFT_PACKAGE
 // MARK: - Previews
 
 #Preview("MacTreeView") {
     MacTreeView()
 }
+#endif

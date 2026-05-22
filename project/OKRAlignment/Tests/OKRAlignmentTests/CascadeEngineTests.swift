@@ -1,5 +1,5 @@
 import XCTest
-@testable import OKRAlignment
+@testable import OKRAlignmentShared
 
 // MARK: - CascadeEngineTests
 
@@ -35,7 +35,7 @@ final class CascadeEngineTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        sut = CascadeEngine()
+        sut = OKRCascadeEngine()
     }
 
     override func tearDown() {

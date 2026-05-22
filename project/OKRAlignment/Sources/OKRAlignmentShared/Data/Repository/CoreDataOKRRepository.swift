@@ -1,7 +1,10 @@
 // OKRAlignmentShared/Data/Repository/CoreDataOKRRepository.swift
 
-import CoreData
+@preconcurrency import CoreData
 import Foundation
+
+// Concurrency-safe merge policy wrapper for Swift 6 strict concurrency
+// Used @preconcurrency import above instead
 
 // MARK: - Errors
 
@@ -250,7 +253,7 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
                 existingEntity.status = node.status.rawValue
                 existingEntity.ownerName = node.ownerName
                 existingEntity.updatedAt = Date()
-                existingEntity.sortOrder = Int32(node.sortOrder)
+                existingEntity.sortOrder = Int64(node.sortOrder)
                 
                 try context.save()
                 return try EntityToDomainMapper.map(entity: existingEntity)

@@ -107,30 +107,34 @@ public struct ProgressBar: View {
 
 // MARK: - Previews
 
-#Preview("Enterprise Objective - 45%") {
-    ProgressBar(progress: 45.0, scope: .enterprise, nodeType: .objective)
-        .frame(width: 260)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Enterprise Objective - 45%") {
+//     ProgressBar(progress: 45.0, scope: .enterprise, nodeType: .objective)
+//         .frame(width: 260)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Personal Objective - 72%") {
-    ProgressBar(progress: 72.0, scope: .personal, nodeType: .objective)
-        .frame(width: 260)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Personal Objective - 72%") {
+//     ProgressBar(progress: 72.0, scope: .personal, nodeType: .objective)
+//         .frame(width: 260)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Key Result - 100%") {
-    ProgressBar(progress: 100.0, scope: .enterprise, nodeType: .keyResult)
-        .frame(width: 260)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Key Result - 100%") {
+//     ProgressBar(progress: 100.0, scope: .enterprise, nodeType: .keyResult)
+//         .frame(width: 260)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Zero Progress") {
-    ProgressBar(progress: 0.0, scope: .personal, nodeType: .keyResult)
-        .frame(width: 260)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Zero Progress") {
+//     ProgressBar(progress: 0.0, scope: .personal, nodeType: .keyResult)
+//         .frame(width: 260)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }

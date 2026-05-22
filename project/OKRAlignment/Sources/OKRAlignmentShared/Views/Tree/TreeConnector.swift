@@ -142,30 +142,34 @@ public struct TreeConnector: View {
 
 // MARK: - Previews
 
-#Preview("Single Child Connector") {
-    TreeConnector(childCount: 1, isExpanded: true)
-        .frame(width: 280)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Single Child Connector") {
+//     TreeConnector(childCount: 1, isExpanded: true)
+//         .frame(width: 280)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Three Children Connector") {
-    TreeConnector(childCount: 3, nodeSpacing: 320, isExpanded: true)
-        .frame(width: 960)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Three Children Connector") {
+//     TreeConnector(childCount: 3, nodeSpacing: 320, isExpanded: true)
+//         .frame(width: 960)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Five Children Connector") {
-    TreeConnector(childCount: 5, nodeSpacing: 300, isExpanded: true)
-        .frame(width: 1500)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Five Children Connector") {
+//     TreeConnector(childCount: 5, nodeSpacing: 300, isExpanded: true)
+//         .frame(width: 1500)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Collapsed (Hidden)") {
-    TreeConnector(childCount: 3, isExpanded: false)
-        .frame(width: 280)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Collapsed (Hidden)") {
+//     TreeConnector(childCount: 3, isExpanded: false)
+//         .frame(width: 280)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }

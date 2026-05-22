@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import OKRAlignmentShared
 
@@ -769,3 +770,5 @@ struct DetailInfoItem: View {
     }
     .preferredColorScheme(.dark)
 }
+
+#endif

@@ -110,114 +110,117 @@ private func makeSampleNode(
         progress: progress,
         status: .inProgress,
         ownerName: ownerName,
-        createdAt: Date(),
-        updatedAt: Date(),
         sortOrder: 0,
         parentId: nil,
         children: children,
-        cycleId: nil
+        cycleId: nil,
+        createdAt: Date(),
+        updatedAt: Date()
     )
 }
 
 // MARK: - Previews
 
-#Preview("Single Node Row") {
-    @Previewable @State var expanded: Set<UUID> = []
-    
-    let nodes = [
-        makeSampleNode(
-            id: UUID(),
-            title: "Increase Revenue",
-            nodeType: .objective,
-            scope: .enterprise,
-            progress: 75.0,
-            ownerName: "Alice"
-        )
-    ]
-    
-    TreeNodeRow(
-        nodes: nodes,
-        expandedNodeIds: $expanded,
-        onNodeTap: { _ in },
-        onUpdateProgress: nil
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Single Node Row") {
+//     @Previewable @State var expanded: Set<UUID> = []
+//     
+//     let nodes = [
+//         makeSampleNode(
+//             id: UUID(),
+//             title: "Increase Revenue",
+//             nodeType: .objective,
+//             scope: .enterprise,
+//             progress: 75.0,
+//             ownerName: "Alice"
+//         )
+//     ]
+//     
+//     TreeNodeRow(
+//         nodes: nodes,
+//         expandedNodeIds: $expanded,
+//         onNodeTap: { _ in },
+//         onUpdateProgress: nil
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Three Nodes Row") {
-    @Previewable @State var expanded: Set<UUID> = []
-    
-    let nodes = [
-        makeSampleNode(
-            id: UUID(),
-            title: "Increase Revenue",
-            nodeType: .objective,
-            scope: .enterprise,
-            progress: 75.0,
-            ownerName: "Alice"
-        ),
-        makeSampleNode(
-            id: UUID(),
-            title: "Improve Retention",
-            nodeType: .keyResult,
-            scope: .personal,
-            progress: 45.0,
-            ownerName: "Bob"
-        ),
-        makeSampleNode(
-            id: UUID(),
-            title: "Launch Product",
-            nodeType: .keyResult,
-            scope: .enterprise,
-            progress: 90.0,
-            ownerName: "Carol"
-        )
-    ]
-    
-    TreeNodeRow(
-        nodes: nodes,
-        expandedNodeIds: $expanded,
-        onNodeTap: { _ in },
-        onUpdateProgress: nil
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Three Nodes Row") {
+//     @Previewable @State var expanded: Set<UUID> = []
+//     
+//     let nodes = [
+//         makeSampleNode(
+//             id: UUID(),
+//             title: "Increase Revenue",
+//             nodeType: .objective,
+//             scope: .enterprise,
+//             progress: 75.0,
+//             ownerName: "Alice"
+//         ),
+//         makeSampleNode(
+//             id: UUID(),
+//             title: "Improve Retention",
+//             nodeType: .keyResult,
+//             scope: .personal,
+//             progress: 45.0,
+//             ownerName: "Bob"
+//         ),
+//         makeSampleNode(
+//             id: UUID(),
+//             title: "Launch Product",
+//             nodeType: .keyResult,
+//             scope: .enterprise,
+//             progress: 90.0,
+//             ownerName: "Carol"
+//         )
+//     ]
+//     
+//     TreeNodeRow(
+//         nodes: nodes,
+//         expandedNodeIds: $expanded,
+//         onNodeTap: { _ in },
+//         onUpdateProgress: nil
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Mixed Types Row with Expansion") {
-    @Previewable @State var expanded: Set<UUID> = [UUID()]
-    
-    let parentId = expanded.first!
-    let nodes = [
-        makeSampleNode(
-            id: parentId,
-            title: "Q4 Growth Objective",
-            nodeType: .objective,
-            scope: .enterprise,
-            progress: 60.0,
-            ownerName: "Alice",
-            children: [
-                makeSampleNode(id: UUID(), title: "KR1", nodeType: .keyResult, scope: .personal, progress: 50, ownerName: "Team A"),
-                makeSampleNode(id: UUID(), title: "KR2", nodeType: .keyResult, scope: .personal, progress: 70, ownerName: "Team B")
-            ]
-        ),
-        makeSampleNode(
-            id: UUID(),
-            title: "Standalone KR",
-            nodeType: .keyResult,
-            scope: .personal,
-            progress: 80.0,
-            ownerName: "Bob"
-        )
-    ]
-    
-    TreeNodeRow(
-        nodes: nodes,
-        expandedNodeIds: $expanded,
-        onNodeTap: { _ in },
-        onUpdateProgress: { _, _ in }
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Mixed Types Row with Expansion") {
+//     @Previewable @State var expanded: Set<UUID> = [UUID()]
+//     
+//     let parentId = expanded.first!
+//     let nodes = [
+//         makeSampleNode(
+//             id: parentId,
+//             title: "Q4 Growth Objective",
+//             nodeType: .objective,
+//             scope: .enterprise,
+//             progress: 60.0,
+//             ownerName: "Alice",
+//             children: [
+//                 makeSampleNode(id: UUID(), title: "KR1", nodeType: .keyResult, scope: .personal, progress: 50, ownerName: "Team A"),
+//                 makeSampleNode(id: UUID(), title: "KR2", nodeType: .keyResult, scope: .personal, progress: 70, ownerName: "Team B")
+//             ]
+//         ),
+//         makeSampleNode(
+//             id: UUID(),
+//             title: "Standalone KR",
+//             nodeType: .keyResult,
+//             scope: .personal,
+//             progress: 80.0,
+//             ownerName: "Bob"
+//         )
+//     ]
+//     
+//     TreeNodeRow(
+//         nodes: nodes,
+//         expandedNodeIds: $expanded,
+//         onNodeTap: { _ in },
+//         onUpdateProgress: { _, _ in }
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }

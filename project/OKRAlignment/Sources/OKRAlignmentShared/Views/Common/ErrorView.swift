@@ -140,35 +140,39 @@ public struct ErrorView: View {
 
 // MARK: - Previews
 
-#Preview("Default Error") {
-    ErrorView(
-        message: "Failed to load OKR tree. Please check your network connection and try again.",
-        onRetry: {}
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Default Error") {
+//     ErrorView(
+//         message: "Failed to load OKR tree. Please check your network connection and try again.",
+//         onRetry: {}
+//     )
+// }
 
-#Preview("Retrying State") {
-    ErrorView(
-        message: "Failed to load OKR tree. Please check your network connection and try again.",
-        isRetrying: true,
-        onRetry: {}
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Retrying State") {
+//     ErrorView(
+//         message: "Failed to load OKR tree. Please check your network connection and try again.",
+//         isRetrying: true,
+//         onRetry: {}
+//     )
+// }
 
-#Preview("Custom Error") {
-    ErrorView(
-        message: "The selected cycle does not exist or has been deleted.",
-        title: "Cycle Not Found",
-        iconName: "magnifyingglass.circle.fill",
-        onRetry: {}
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Custom Error") {
+//     ErrorView(
+//         message: "The selected cycle does not exist or has been deleted.",
+//         title: "Cycle Not Found",
+//         iconName: "magnifyingglass.circle.fill",
+//         onRetry: {}
+//     )
+// }
 
-#Preview("Server Error") {
-    ErrorView(
-        message: "Internal server error (500). Our team has been notified. Please try again later.",
-        title: "Server Error",
-        iconName: "server.rack",
-        onRetry: {}
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Server Error") {
+//     ErrorView(
+//         message: "Internal server error (500). Our team has been notified. Please try again later.",
+//         title: "Server Error",
+//         iconName: "server.rack",
+//         onRetry: {}
+//     )
+// }

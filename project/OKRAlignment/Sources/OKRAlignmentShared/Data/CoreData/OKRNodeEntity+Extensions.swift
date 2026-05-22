@@ -58,6 +58,15 @@ public final class OKRNodeEntity: NSManagedObject {
     /// 通过parentId建立树状结构关系
     @NSManaged public var parentId: UUID?
 
+    /// Ordered to-many relationship to child nodes
+    @NSManaged public var children: NSOrderedSet?
+
+    /// To-one relationship to parent node (inverse of children)
+    @NSManaged public var parent: OKRNodeEntity?
+
+    /// To-one relationship to the owning cycle
+    @NSManaged public var cycle: OKRCycleEntity?
+
     // MARK: - Fetch Request
 
     /// 创建默认的Fetch Request

@@ -257,48 +257,51 @@ private extension Comparable {
 
 // MARK: - Previews
 
-#Preview("Default ValuePicker") {
-    @Previewable @State var value: Double = 50
-    @Previewable @State var unit: String? = "%"
-    
-    ValuePicker(
-        title: "Current Value",
-        value: $value,
-        unit: $unit,
-        min: 0,
-        max: 100
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Default ValuePicker") {
+//     @Previewable @State var value: Double = 50
+//     @Previewable @State var unit: String? = "%"
+//     
+//     ValuePicker(
+//         title: "Current Value",
+//         value: $value,
+//         unit: $unit,
+//         min: 0,
+//         max: 100
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Without Unit Selector") {
-    @Previewable @State var value: Double = 100
-    
-    ValuePicker(
-        title: "Target Value",
-        value: $value,
-        showUnitSelector: false,
-        min: 1,
-        max: 1000,
-        step: 10
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Without Unit Selector") {
+//     @Previewable @State var value: Double = 100
+//     
+//     ValuePicker(
+//         title: "Target Value",
+//         value: $value,
+//         showUnitSelector: false,
+//         min: 1,
+//         max: 1000,
+//         step: 10
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("At Boundaries") {
-    @Previewable @State var value: Double = 0
-    @Previewable @State var unit: String? = "users"
-    
-    ValuePicker(
-        title: "Users Acquired",
-        value: $value,
-        unit: $unit,
-        min: 0,
-        max: 10000,
-        step: 100
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("At Boundaries") {
+//     @Previewable @State var value: Double = 0
+//     @Previewable @State var unit: String? = "users"
+//     
+//     ValuePicker(
+//         title: "Users Acquired",
+//         value: $value,
+//         unit: $unit,
+//         min: 0,
+//         max: 10000,
+//         step: 100
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }

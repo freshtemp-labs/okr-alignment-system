@@ -72,7 +72,7 @@ enum DomainToEntityMapper {
         entity.ownerName = domain.ownerName
         entity.createdAt = domain.createdAt
         entity.updatedAt = domain.updatedAt
-        entity.sortOrder = Int32(domain.sortOrder)
+        entity.sortOrder = Int64(domain.sortOrder)
         
         // 关联周期（如果指定了cycleId）
         if let cycleId = domain.cycleId {

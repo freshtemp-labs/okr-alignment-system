@@ -178,35 +178,38 @@ public struct DeleteConfirmView: View {
 
 // MARK: - Previews
 
-#Preview("With Children - Cascade Option") {
-    DeleteConfirmView(
-        nodeTitle: "Q4 Company Objective",
-        hasChildren: true,
-        onCancel: {},
-        onConfirm: { _ in }
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("With Children - Cascade Option") {
+//     DeleteConfirmView(
+//         nodeTitle: "Q4 Company Objective",
+//         hasChildren: true,
+//         onCancel: {},
+//         onConfirm: { _ in }
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Leaf Node - No Children") {
-    DeleteConfirmView(
-        nodeTitle: "Reduce churn to 5%",
-        hasChildren: false,
-        onCancel: {},
-        onConfirm: { _ in }
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Leaf Node - No Children") {
+//     DeleteConfirmView(
+//         nodeTitle: "Reduce churn to 5%",
+//         hasChildren: false,
+//         onCancel: {},
+//         onConfirm: { _ in }
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Long Title") {
-    DeleteConfirmView(
-        nodeTitle: "Increase quarterly revenue by 50% through new market expansion in Southeast Asia",
-        hasChildren: true,
-        onCancel: {},
-        onConfirm: { _ in }
-    )
-    .padding()
-    .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Long Title") {
+//     DeleteConfirmView(
+//         nodeTitle: "Increase quarterly revenue by 50% through new market expansion in Southeast Asia",
+//         hasChildren: true,
+//         onCancel: {},
+//         onConfirm: { _ in }
+//     )
+//     .padding()
+//     .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }

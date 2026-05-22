@@ -159,39 +159,43 @@ public struct EmptyStateView: View {
 
 // MARK: - Previews
 
-#Preview("Default Empty State") {
-    EmptyStateView {
-        print("Create tapped")
-    }
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Default Empty State") {
+//     EmptyStateView {
+//         print("Create tapped")
+//     }
+// }
 
-#Preview("Custom Empty State") {
-    EmptyStateView(
-        title: "No Cycle Selected",
-        subtitle: "Select a cycle from the sidebar or create a new one to view OKRs",
-        iconName: "calendar.badge.clock",
-        actionTitle: "Create New Cycle",
-        onAction: {}
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Custom Empty State") {
+//     EmptyStateView(
+//         title: "No Cycle Selected",
+//         subtitle: "Select a cycle from the sidebar or create a new one to view OKRs",
+//         iconName: "calendar.badge.clock",
+//         actionTitle: "Create New Cycle",
+//         onAction: {}
+//     )
+// }
 
-#Preview("Loading State") {
-    EmptyStateView(
-        title: "Loading...",
-        subtitle: "Preparing your workspace",
-        iconName: "arrow.clockwise.circle.fill",
-        actionTitle: "Please Wait",
-        isLoading: true,
-        onAction: {}
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Loading State") {
+//     EmptyStateView(
+//         title: "Loading...",
+//         subtitle: "Preparing your workspace",
+//         iconName: "arrow.clockwise.circle.fill",
+//         actionTitle: "Please Wait",
+//         isLoading: true,
+//         onAction: {}
+//     )
+// }
 
-#Preview("After Deletion") {
-    EmptyStateView(
-        title: "All OKRs Deleted",
-        subtitle: "Your cycle is now empty. Create a new OKR to start fresh.",
-        iconName: "trash.slash.fill",
-        actionTitle: "Create OKR",
-        onAction: {}
-    )
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("After Deletion") {
+//     EmptyStateView(
+//         title: "All OKRs Deleted",
+//         subtitle: "Your cycle is now empty. Create a new OKR to start fresh.",
+//         iconName: "trash.slash.fill",
+//         actionTitle: "Create OKR",
+//         onAction: {}
+//     )
+// }

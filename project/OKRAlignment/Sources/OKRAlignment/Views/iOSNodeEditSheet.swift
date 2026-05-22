@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import OKRAlignmentShared
 
@@ -369,3 +370,5 @@ private func makePreviewNode(
             )
         }
 }
+
+#endif

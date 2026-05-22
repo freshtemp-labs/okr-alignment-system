@@ -17,7 +17,7 @@ import Foundation
 /// let repository: OKRRepositoryProtocol = CoreDataOKRRepository(container: container)
 /// let roots = try await repository.fetchRootNodes(cycleId: cycleId)
 /// ```
-protocol OKRRepositoryProtocol: Sendable {
+public protocol OKRRepositoryProtocol: Sendable {
     
     // MARK: - Node Queries
     

@@ -1,5 +1,8 @@
 import Foundation
-import CoreData
+@preconcurrency import CoreData
+
+// Concurrency-safe merge policy wrapper for Swift 6 strict concurrency
+nonisolated(unsafe) private let _propertyObjectTrumpMergePolicy = NSMergeByPropertyObjectTrumpMergePolicy as! NSMergePolicy
 
 #if canImport(CloudKit)
 import CloudKit
@@ -149,7 +152,7 @@ public final class PersistenceController: @unchecked Sendable {
         viewContext.automaticallyMergesChangesFromParent = true
 
         // 合并策略：优先使用外部变更（来自CloudKit或其他上下文）
-        viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        viewContext.mergePolicy = _propertyObjectTrumpMergePolicy
 
         // 未保存变更的撤销支持
         viewContext.undoManager = nil
@@ -162,7 +165,7 @@ public final class PersistenceController: @unchecked Sendable {
     /// - Returns: 新的私有队列上下文
     public func newBackgroundContext() -> NSManagedObjectContext {
         let context = container.newBackgroundContext()
-        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        context.mergePolicy = _propertyObjectTrumpMergePolicy
         return context
     }
 
@@ -290,22 +293,17 @@ public final class PersistenceController: @unchecked Sendable {
         updatedAtAttr.isOptional = false
         updatedAtAttr.defaultValue = Date()
 
-        let cycleIdAttr = NSAttributeDescription()
-        cycleIdAttr.name = "cycleId"
-        cycleIdAttr.attributeType = .UUIDAttributeType
-        cycleIdAttr.isOptional = true
+        let nodeCycleIdAttr = NSAttributeDescription()
+        nodeCycleIdAttr.name = "cycleId"
+        nodeCycleIdAttr.attributeType = .UUIDAttributeType
+        nodeCycleIdAttr.isOptional = true
 
-        nodeEntity.properties = [
-            idAttr, titleAttr, nodeDescriptionAttr,
-            nodeTypeAttr, scopeAttr,
-            currentValueAttr, targetValueAttr, unitAttr,
-            progressAttr, statusAttr,
-            ownerNameAttr, sortOrderAttr,
-            createdAtAttr, updatedAtAttr,
-            cycleIdAttr
-        ]
+        let parentIdAttr = NSAttributeDescription()
+        parentIdAttr.name = "parentId"
+        parentIdAttr.attributeType = .UUIDAttributeType
+        parentIdAttr.isOptional = true
 
-        // MARK: OKRCycleEntity
+        // MARK: OKRCycleEntity (declared early so relationships can reference it)
         let cycleEntity = NSEntityDescription()
         cycleEntity.name = "OKRCycleEntity"
         cycleEntity.managedObjectClassName = "OKRAlignmentShared.OKRCycleEntity"
@@ -342,10 +340,61 @@ public final class PersistenceController: @unchecked Sendable {
         isArchivedAttr.isOptional = false
         isArchivedAttr.defaultValue = false
 
+        // ── Relationships ──
+
+        // parent ↔ children  (self-referencing, ordered to-many)
+        let childrenRel = NSRelationshipDescription()
+        childrenRel.name = "children"
+        childrenRel.destinationEntity = nodeEntity
+        childrenRel.minCount = 0
+        childrenRel.maxCount = 0          // to-many
+        childrenRel.isOrdered = true
+        childrenRel.deleteRule = .cascadeDeleteRule
+
+        let parentRel = NSRelationshipDescription()
+        parentRel.name = "parent"
+        parentRel.destinationEntity = nodeEntity
+        parentRel.minCount = 0
+        parentRel.maxCount = 1
+        parentRel.deleteRule = .nullifyDeleteRule
+
+        childrenRel.inverseRelationship = parentRel
+        parentRel.inverseRelationship = childrenRel
+
+        // cycle ↔ nodes
+        let cycleRel = NSRelationshipDescription()
+        cycleRel.name = "cycle"
+        cycleRel.destinationEntity = cycleEntity
+        cycleRel.minCount = 0
+        cycleRel.maxCount = 1
+        cycleRel.deleteRule = .nullifyDeleteRule
+
+        let nodesRel = NSRelationshipDescription()
+        nodesRel.name = "nodes"
+        nodesRel.destinationEntity = nodeEntity
+        nodesRel.minCount = 0
+        nodesRel.maxCount = 0
+        nodesRel.deleteRule = .nullifyDeleteRule
+
+        cycleRel.inverseRelationship = nodesRel
+        nodesRel.inverseRelationship = cycleRel
+
+        nodeEntity.properties = [
+            idAttr, titleAttr, nodeDescriptionAttr,
+            nodeTypeAttr, scopeAttr,
+            currentValueAttr, targetValueAttr, unitAttr,
+            progressAttr, statusAttr,
+            ownerNameAttr, sortOrderAttr,
+            createdAtAttr, updatedAtAttr,
+            nodeCycleIdAttr, parentIdAttr,
+            childrenRel, parentRel, cycleRel
+        ]
+
         cycleEntity.properties = [
             cycleIdAttr, nameAttr,
             startDateAttr, endDateAttr,
-            isActiveAttr, isArchivedAttr
+            isActiveAttr, isArchivedAttr,
+            nodesRel
         ]
 
         // 组装模型

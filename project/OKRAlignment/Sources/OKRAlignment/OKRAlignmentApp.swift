@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import OKRAlignmentShared
 import CoreData
@@ -184,3 +185,5 @@ struct OKRAlignmentApp: App {
         .environment(CycleListViewModel(repository: previewRepo))
         .preferredColorScheme(.dark)
 }
+
+#endif

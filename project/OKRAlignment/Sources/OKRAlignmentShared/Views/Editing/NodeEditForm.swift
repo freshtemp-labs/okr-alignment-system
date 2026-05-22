@@ -460,12 +460,12 @@ public struct NodeEditForm: View {
             progress: progress,
             status: status,
             ownerName: ownerName.trimmingCharacters(in: .whitespaces),
-            createdAt: createdAt,
-            updatedAt: now,
             sortOrder: 0,
             parentId: selectedParentId,
             children: [], // Children are managed separately
-            cycleId: nil
+            cycleId: nil,
+            createdAt: createdAt,
+            updatedAt: now
         )
         
         isSaving = true
@@ -481,77 +481,80 @@ public struct NodeEditForm: View {
 
 // MARK: - Previews
 
-#Preview("Create Mode") {
-    NodeEditForm(
-        mode: .create(parentId: nil),
-        availableParents: [
-            OKRNode(id: UUID(), title: "Parent Objective 1", nodeDescription: nil, nodeType: .objective, scope: .enterprise, currentValue: 0, targetValue: 0, unit: nil, progress: 50, status: .inProgress, ownerName: "Alice", createdAt: Date(), updatedAt: Date(), sortOrder: 0, parentId: nil, children: [], cycleId: nil),
-            OKRNode(id: UUID(), title: "Parent Objective 2", nodeDescription: nil, nodeType: .objective, scope: .personal, currentValue: 0, targetValue: 0, unit: nil, progress: 30, status: .inProgress, ownerName: "Bob", createdAt: Date(), updatedAt: Date(), sortOrder: 1, parentId: nil, children: [], cycleId: nil)
-        ],
-        onSave: { _ in },
-        onCancel: {}
-    )
-    .frame(width: 480, height: 700)
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Create Mode") {
+//     NodeEditForm(
+//         mode: .create(parentId: nil),
+//         availableParents: [
+//             OKRNode(id: UUID(), title: "Parent Objective 1", nodeDescription: nil, nodeType: .objective, scope: .enterprise, currentValue: 0, targetValue: 0, unit: nil, progress: 50, status: .inProgress, ownerName: "Alice", createdAt: Date(), updatedAt: Date(), sortOrder: 0, parentId: nil, children: [], cycleId: nil),
+//             OKRNode(id: UUID(), title: "Parent Objective 2", nodeDescription: nil, nodeType: .objective, scope: .personal, currentValue: 0, targetValue: 0, unit: nil, progress: 30, status: .inProgress, ownerName: "Bob", createdAt: Date(), updatedAt: Date(), sortOrder: 1, parentId: nil, children: [], cycleId: nil)
+//         ],
+//         onSave: { _ in },
+//         onCancel: {}
+//     )
+//     .frame(width: 480, height: 700)
+// }
 
-#Preview("Edit Mode - Objective") {
-    let existingNode = OKRNode(
-        id: UUID(),
-        title: "Increase Q4 Revenue",
-        nodeDescription: "Focus on enterprise customers",
-        nodeType: .objective,
-        scope: .enterprise,
-        currentValue: 0,
-        targetValue: 0,
-        unit: nil,
-        progress: 65.0,
-        status: .inProgress,
-        ownerName: "Alice Chen",
-        createdAt: Date(),
-        updatedAt: Date(),
-        sortOrder: 0,
-        parentId: nil,
-        children: [],
-        cycleId: nil
-    )
-    
-    NodeEditForm(
-        mode: .edit(existingNode),
-        availableParents: [],
-        onSave: { _ in },
-        onCancel: {}
-    )
-    .frame(width: 480, height: 700)
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Edit Mode - Objective") {
+//     let existingNode = OKRNode(
+//         id: UUID(),
+//         title: "Increase Q4 Revenue",
+//         nodeDescription: "Focus on enterprise customers",
+//         nodeType: .objective,
+//         scope: .enterprise,
+//         currentValue: 0,
+//         targetValue: 0,
+//         unit: nil,
+//         progress: 65.0,
+//         status: .inProgress,
+//         ownerName: "Alice Chen",
+//         createdAt: Date(),
+//         updatedAt: Date(),
+//         sortOrder: 0,
+//         parentId: nil,
+//         children: [],
+//         cycleId: nil
+//     )
+//     
+//     NodeEditForm(
+//         mode: .edit(existingNode),
+//         availableParents: [],
+//         onSave: { _ in },
+//         onCancel: {}
+//     )
+//     .frame(width: 480, height: 700)
+// }
 
-#Preview("Edit Mode - Key Result") {
-    let existingNode = OKRNode(
-        id: UUID(),
-        title: "Launch onboarding v2",
-        nodeDescription: "Redesign the user onboarding experience",
-        nodeType: .keyResult,
-        scope: .personal,
-        currentValue: 3,
-        targetValue: 5,
-        unit: "features",
-        progress: 60.0,
-        status: .inProgress,
-        ownerName: "Bob Smith",
-        createdAt: Date(),
-        updatedAt: Date(),
-        sortOrder: 0,
-        parentId: UUID(),
-        children: [],
-        cycleId: nil
-    )
-    
-    NodeEditForm(
-        mode: .edit(existingNode),
-        availableParents: [
-            OKRNode(id: UUID(), title: "Q4 Product Goals", nodeDescription: nil, nodeType: .objective, scope: .enterprise, currentValue: 0, targetValue: 0, unit: nil, progress: 50, status: .inProgress, ownerName: "Alice", createdAt: Date(), updatedAt: Date(), sortOrder: 0, parentId: nil, children: [], cycleId: nil)
-        ],
-        onSave: { _ in },
-        onCancel: {}
-    )
-    .frame(width: 480, height: 700)
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Edit Mode - Key Result") {
+//     let existingNode = OKRNode(
+//         id: UUID(),
+//         title: "Launch onboarding v2",
+//         nodeDescription: "Redesign the user onboarding experience",
+//         nodeType: .keyResult,
+//         scope: .personal,
+//         currentValue: 3,
+//         targetValue: 5,
+//         unit: "features",
+//         progress: 60.0,
+//         status: .inProgress,
+//         ownerName: "Bob Smith",
+//         createdAt: Date(),
+//         updatedAt: Date(),
+//         sortOrder: 0,
+//         parentId: UUID(),
+//         children: [],
+//         cycleId: nil
+//     )
+//     
+//     NodeEditForm(
+//         mode: .edit(existingNode),
+//         availableParents: [
+//             OKRNode(id: UUID(), title: "Q4 Product Goals", nodeDescription: nil, nodeType: .objective, scope: .enterprise, currentValue: 0, targetValue: 0, unit: nil, progress: 50, status: .inProgress, ownerName: "Alice", createdAt: Date(), updatedAt: Date(), sortOrder: 0, parentId: nil, children: [], cycleId: nil)
+//         ],
+//         onSave: { _ in },
+//         onCancel: {}
+//     )
+//     .frame(width: 480, height: 700)
+// }

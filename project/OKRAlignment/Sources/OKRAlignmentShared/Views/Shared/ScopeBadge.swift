@@ -80,20 +80,23 @@ public struct ScopeBadge: View {
 
 // MARK: - Previews
 
-#Preview("Enterprise Scope Badge") {
-    ScopeBadge(ownerName: "Alice Chen", scope: .enterprise)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Enterprise Scope Badge") {
+//     ScopeBadge(ownerName: "Alice Chen", scope: .enterprise)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Personal Scope Badge") {
-    ScopeBadge(ownerName: "Bob Smith", scope: .personal)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Personal Scope Badge") {
+//     ScopeBadge(ownerName: "Bob Smith", scope: .personal)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Long Name Badge") {
-    ScopeBadge(ownerName: "Christopher Alexander", scope: .enterprise)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Long Name Badge") {
+//     ScopeBadge(ownerName: "Christopher Alexander", scope: .enterprise)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }

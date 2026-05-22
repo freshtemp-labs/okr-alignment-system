@@ -27,6 +27,9 @@ public final class OKRCycleEntity: NSManagedObject {
     /// 是否已归档
     @NSManaged public var isArchived: Bool
 
+    /// To-many relationship to nodes belonging to this cycle
+    @NSManaged public var nodes: NSSet?
+
     // MARK: - Fetch Request
 
     /// 创建默认的Fetch Request

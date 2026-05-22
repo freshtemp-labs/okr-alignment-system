@@ -126,80 +126,83 @@ public struct LeafControls: View {
 
 // MARK: - Previews
 
-#Preview("Visible Controls") {
-    let sampleNode = OKRNode(
-        id: UUID(),
-        title: "Sample KR",
-        nodeDescription: nil,
-        nodeType: .keyResult,
-        scope: .personal,
-        currentValue: 50,
-        targetValue: 100,
-        unit: "%",
-        progress: 50.0,
-        status: .inProgress,
-        ownerName: "Alice",
-        createdAt: Date(),
-        updatedAt: Date(),
-        sortOrder: 0,
-        parentId: nil,
-        children: [],
-        cycleId: nil
-    )
-    
-    LeafControls(node: sampleNode, isVisible: true) { _, _ in }
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Visible Controls") {
+//     let sampleNode = OKRNode(
+//         id: UUID(),
+//         title: "Sample KR",
+//         nodeDescription: nil,
+//         nodeType: .keyResult,
+//         scope: .personal,
+//         currentValue: 50,
+//         targetValue: 100,
+//         unit: "%",
+//         progress: 50.0,
+//         status: .inProgress,
+//         ownerName: "Alice",
+//         createdAt: Date(),
+//         updatedAt: Date(),
+//         sortOrder: 0,
+//         parentId: nil,
+//         children: [],
+//         cycleId: nil
+//     )
+//     
+//     LeafControls(node: sampleNode, isVisible: true) { _, _ in }
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Hidden Controls") {
-    let sampleNode = OKRNode(
-        id: UUID(),
-        title: "Sample KR",
-        nodeDescription: nil,
-        nodeType: .keyResult,
-        scope: .personal,
-        currentValue: 50,
-        targetValue: 100,
-        unit: "%",
-        progress: 50.0,
-        status: .inProgress,
-        ownerName: "Alice",
-        createdAt: Date(),
-        updatedAt: Date(),
-        sortOrder: 0,
-        parentId: nil,
-        children: [],
-        cycleId: nil
-    )
-    
-    LeafControls(node: sampleNode, isVisible: false) { _, _ in }
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Hidden Controls") {
+//     let sampleNode = OKRNode(
+//         id: UUID(),
+//         title: "Sample KR",
+//         nodeDescription: nil,
+//         nodeType: .keyResult,
+//         scope: .personal,
+//         currentValue: 50,
+//         targetValue: 100,
+//         unit: "%",
+//         progress: 50.0,
+//         status: .inProgress,
+//         ownerName: "Alice",
+//         createdAt: Date(),
+//         updatedAt: Date(),
+//         sortOrder: 0,
+//         parentId: nil,
+//         children: [],
+//         cycleId: nil
+//     )
+//     
+//     LeafControls(node: sampleNode, isVisible: false) { _, _ in }
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("At Zero - Decrement Disabled") {
-    let zeroNode = OKRNode(
-        id: UUID(),
-        title: "Zero Progress KR",
-        nodeDescription: nil,
-        nodeType: .keyResult,
-        scope: .enterprise,
-        currentValue: 0,
-        targetValue: 100,
-        unit: nil,
-        progress: 0.0,
-        status: .notStarted,
-        ownerName: "Bob",
-        createdAt: Date(),
-        updatedAt: Date(),
-        sortOrder: 0,
-        parentId: nil,
-        children: [],
-        cycleId: nil
-    )
-    
-    LeafControls(node: zeroNode, isVisible: true) { _, _ in }
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("At Zero - Decrement Disabled") {
+//     let zeroNode = OKRNode(
+//         id: UUID(),
+//         title: "Zero Progress KR",
+//         nodeDescription: nil,
+//         nodeType: .keyResult,
+//         scope: .enterprise,
+//         currentValue: 0,
+//         targetValue: 100,
+//         unit: nil,
+//         progress: 0.0,
+//         status: .notStarted,
+//         ownerName: "Bob",
+//         createdAt: Date(),
+//         updatedAt: Date(),
+//         sortOrder: 0,
+//         parentId: nil,
+//         children: [],
+//         cycleId: nil
+//     )
+//     
+//     LeafControls(node: zeroNode, isVisible: true) { _, _ in }
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }

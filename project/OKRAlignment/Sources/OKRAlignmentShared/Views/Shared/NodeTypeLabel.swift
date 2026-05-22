@@ -63,14 +63,16 @@ public struct NodeTypeLabel: View {
 
 // MARK: - Previews
 
-#Preview("Objective Label") {
-    NodeTypeLabel(nodeType: .objective)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Objective Label") {
+//     NodeTypeLabel(nodeType: .objective)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
 
-#Preview("Key Result Label") {
-    NodeTypeLabel(nodeType: .keyResult)
-        .padding()
-        .background(Color(red: 15/255, green: 23/255, blue: 42/255))
-}
+// --- Preview block commented out for SPM build ---
+// #Preview("Key Result Label") {
+//     NodeTypeLabel(nodeType: .keyResult)
+//         .padding()
+//         .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+// }
