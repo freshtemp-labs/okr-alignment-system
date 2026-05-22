@@ -760,6 +760,14 @@ public enum ReportExportService {
         .chart-bar-bg { flex: 1; height: 24px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
         .chart-bar-fill { height: 100%; border-radius: 4px; background: #3B82F6; }
         .chart-value { width: 40px; text-align: right; font-size: 12px; margin-left: 8px; }
+        .status-pie { display: flex; align-items: center; gap: 20px; margin: 15px 0; flex-wrap: wrap; }
+        .pie-container { position: relative; width: 120px; height: 120px; }
+        .pie-legend { display: flex; flex-direction: column; gap: 6px; }
+        .pie-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .pie-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .owner-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin: 15px 0; }
+        .owner-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px; }
+        .owner-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 14px; }
         .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #9ca3af; }
         </style>
         </head>
@@ -798,7 +806,45 @@ public enum ReportExportService {
             """
         }
 
-        html += "<h2>📋 状态分布</h2><table><tr><th>状态</th><th>数量</th><th>占比</th></tr>"
+        html += "<h2>📋 状态分布</h2>"
+        
+        // 状态分布饼图 + 图例
+        let statusColors: [String: String] = [
+            "not_started": "#6b7280", "in_progress": "#3B82F6",
+            "at_risk": "#F59E0B", "completed": "#10B981", "cancelled": "#EF4444"
+        ]
+        let totalForPie = max(preview.totalNodesCount, 1)
+        var pieSegments: [(String, Double, String)] = []
+        for status in NodeStatus.allCases {
+            let count = preview.statusDistribution[status] ?? 0
+            if count > 0 {
+                let pct = Double(count) / Double(totalForPie) * 360
+                let color = statusColors[status.rawValue] ?? "#6b7280"
+                pieSegments.append((status.displayName, pct, color))
+            }
+        }
+        
+        html += "<div class=\"status-pie\">"
+        // CSS conic-gradient 饼图
+        var gradientParts: [String] = []
+        var currentAngle: Double = 0
+        for seg in pieSegments {
+            let endAngle = currentAngle + seg.1
+            gradientParts.append("\(seg.2) \(Int(currentAngle))deg \(Int(endAngle))deg")
+            currentAngle = endAngle
+        }
+        let gradient = gradientParts.joined(separator: ", ")
+        html += "<div class=\"pie-container\"><div style=\"width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(\(gradient));\"></div></div>"
+        html += "<div class=\"pie-legend\">"
+        for status in NodeStatus.allCases {
+            let count = preview.statusDistribution[status] ?? 0
+            let color = statusColors[status.rawValue] ?? "#6b7280"
+            let pct = Double(count) / Double(totalForPie) * 100
+            html += "<div class=\"pie-legend-item\"><div class=\"pie-legend-dot\" style=\"background: \(color);\"></div>\(status.displayName): \(count) (\(String(format: "%.1f%%", pct)))</div>"
+        }
+        html += "</div></div>"
+        
+        html += "<table><tr><th>状态</th><th>数量</th><th>占比</th></tr>"
         let totalForPercentage = max(preview.totalNodesCount, 1)
         for status in NodeStatus.allCases {
             let count = preview.statusDistribution[status] ?? 0
@@ -806,6 +852,19 @@ public enum ReportExportService {
             html += "<tr><td class=\"status-\(status.rawValue)\">\(status.displayName)</td><td>\(count)</td><td>\(String(format: "%.1f%%", pct))</td></tr>"
         }
         html += "</table>"
+
+        // 负责人分布
+        if !preview.ownerDistribution.isEmpty {
+            html += "<h2>👥 负责人分布</h2>"
+            html += "<div class=\"owner-grid\">"
+            let avatarColors = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4", "#F97316"]
+            for (index, (owner, count)) in preview.ownerDistribution.sorted(by: { $0.value > $1.value }).enumerated() {
+                let color = avatarColors[index % avatarColors.count]
+                let initial = String(owner.prefix(1))
+                html += "<div class=\"owner-card\"><div class=\"owner-avatar\" style=\"background: \(color);\">\(initial)</div><div><div style=\"font-weight: 600; font-size: 13px;\">\(owner)</div><div style=\"font-size: 11px; color: #6b7280;\">\(count) 个节点</div></div></div>"
+            }
+            html += "</div>"
+        }
 
         // 周期概要
         if !preview.cycleSummaries.isEmpty {

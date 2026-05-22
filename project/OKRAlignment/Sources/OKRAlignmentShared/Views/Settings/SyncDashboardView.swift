@@ -56,6 +56,11 @@ public struct SyncDashboardView: View {
                     // 最近活动时间线
                     recentActivitySection
 
+                    // 错误历史
+                    if !syncManager.errorHistory.isEmpty {
+                        SyncErrorHistorySection(syncManager: syncManager)
+                    }
+
                     // 7天趋势
                     if !syncManager.statistics.last7Days.isEmpty {
                         weeklyTrendSection
@@ -131,6 +136,15 @@ public struct SyncDashboardView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+
+                    // 设备信息
+                    HStack(spacing: 4) {
+                        Image(systemName: "desktopcomputer")
+                            .font(.caption2)
+                        Text(syncManager.deviceName)
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.tertiary)
                 }
 
                 Spacer()
@@ -493,6 +507,55 @@ private struct QuickActionButton: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Error History Section
+
+private struct SyncErrorHistorySection: View {
+    @ObservedObject var syncManager: DataSyncManager
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("错误记录")
+                    .font(.headline)
+                Spacer()
+                Button("清除") {
+                    syncManager.clearErrorHistory()
+                }
+                .font(.caption)
+                .foregroundStyle(.red)
+            }
+
+            ForEach(syncManager.errorHistory.prefix(5)) { error in
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundStyle(.red)
+                        .frame(width: 20)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(error.message)
+                            .font(.caption)
+                            .lineLimit(1)
+                        HStack(spacing: 8) {
+                            Text(error.errorCode)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text(error.timestamp, style: .relative)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(8)
+                .background(Color.red.opacity(0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

@@ -342,6 +342,81 @@ public struct ExportDialogView: View {
                         }
                     }
 
+                    // 状态分布
+                    if preview.totalNodesCount > 0 {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("状态分布")
+                                .font(.caption.bold())
+                            let statusColors: [NodeStatus: Color] = [
+                                .notStarted: .gray, .inProgress: .blue,
+                                .atRisk: .orange, .completed: .green, .cancelled: .red
+                            ]
+                            ForEach(NodeStatus.allCases, id: \.self) { status in
+                                let count = preview.statusDistribution[status] ?? 0
+                                if count > 0 {
+                                    HStack {
+                                        Circle()
+                                            .fill(statusColors[status] ?? .gray)
+                                            .frame(width: 8, height: 8)
+                                        Text(status.displayName)
+                                            .font(.caption2)
+                                            .frame(width: 50, alignment: .leading)
+                                        GeometryReader { geo in
+                                            RoundedRectangle(cornerRadius: 3)
+                                                .fill((statusColors[status] ?? .gray).opacity(0.3))
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 3)
+                                                        .fill(statusColors[status] ?? .gray)
+                                                        .frame(width: max(0, geo.size.width * CGFloat(count) / CGFloat(max(preview.totalNodesCount, 1))))
+                                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                                )
+                                        }
+                                        .frame(height: 10)
+                                        Text("\(count)")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 30, alignment: .trailing)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 负责人分布
+                    if !preview.ownerDistribution.isEmpty {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("负责人分布")
+                                .font(.caption.bold())
+                            let sortedOwners = preview.ownerDistribution.sorted(by: { $0.value > $1.value })
+                            let maxOwnerCount = sortedOwners.first?.value ?? 1
+                            ForEach(sortedOwners.prefix(5), id: \.key) { owner, count in
+                                HStack {
+                                    Text(owner)
+                                        .font(.caption2)
+                                        .frame(width: 60, alignment: .leading)
+                                        .lineLimit(1)
+                                    GeometryReader { geo in
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .fill(Color.purple.opacity(0.3))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 3)
+                                                    .fill(Color.purple)
+                                                    .frame(width: max(0, geo.size.width * CGFloat(count) / CGFloat(max(maxOwnerCount, 1))))
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                            )
+                                    }
+                                    .frame(height: 10)
+                                    Text("\(count)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 30, alignment: .trailing)
+                                }
+                            }
+                        }
+                    }
+
                     // 趋势图
                     if preview.trendData.count > 1 {
                         Divider()

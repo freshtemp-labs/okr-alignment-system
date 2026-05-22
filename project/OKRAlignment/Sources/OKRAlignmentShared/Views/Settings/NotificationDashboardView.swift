@@ -208,6 +208,18 @@ public struct NotificationDashboardView: View {
                     Text(record.sentAt, style: .relative)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
+
+                    // 贪睡按钮
+                    Button {
+                        notificationService.snoozeNotification(recordId: record.id, minutes: 15)
+                        Task { await loadData() }
+                    } label: {
+                        Image(systemName: "clock.badge.questionmark")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("延迟 15 分钟提醒")
                 }
                 .padding(8)
                 .background(Color.orange.opacity(0.05))

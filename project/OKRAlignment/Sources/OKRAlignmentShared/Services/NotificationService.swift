@@ -166,6 +166,8 @@ public final class NotificationService: @unchecked Sendable {
         case byCycle = "by_cycle"
         /// 按负责人分组
         case byOwner = "by_owner"
+        /// 按类型分组
+        case byType = "by_type"
         /// 不分组
         case none = "none"
 
@@ -174,6 +176,7 @@ public final class NotificationService: @unchecked Sendable {
             switch self {
             case .byCycle: return "按周期"
             case .byOwner: return "按负责人"
+            case .byType: return "按类型"
             case .none: return "不分组"
             }
         }
@@ -578,6 +581,78 @@ public final class NotificationService: @unchecked Sendable {
 
     // MARK: - Cancel Notifications
 
+    /// 延迟通知（贪睡功能）
+    ///
+    /// 将指定通知延迟一段时间后重新发送。
+    ///
+    /// - Parameters:
+    ///   - recordId: 通知记录 ID
+    ///   - minutes: 延迟的分钟数
+    public func snoozeNotification(recordId: UUID, minutes: Int = 15) {
+        guard let records = try? JSONDecoder().decode(
+            [NotificationRecord].self,
+            from: UserDefaults.standard.data(forKey: NotificationService.historyKey) ?? Data()
+        ),
+        let record = records.first(where: { $0.id == recordId }) else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "⏰ " + record.title
+        content.body = record.body
+        content.sound = .default
+        content.categoryIdentifier = Category.dailyReminder
+        content.userInfo = [NotificationService.typeKey: record.type.rawValue]
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: TimeInterval(minutes * 60),
+            repeats: false
+        )
+        let request = UNNotificationRequest(
+            identifier: "snooze_\(recordId.uuidString)_\(Date().timeIntervalSince1970)",
+            content: content,
+            trigger: trigger
+        )
+        notificationCenter.add(request)
+
+        // 记录历史
+        addNotificationRecord(
+            title: "延迟提醒: \(record.title)",
+            body: "将在 \(minutes) 分钟后提醒",
+            type: record.type,
+            cycleId: record.cycleId,
+            nodeId: record.nodeId
+        )
+    }
+
+    /// 按类型标记通知为已读
+    ///
+    /// - Parameter type: 通知类型
+    public func markNotificationsAsRead(byType type: NotificationType) {
+        guard var records = try? JSONDecoder().decode(
+            [NotificationRecord].self,
+            from: UserDefaults.standard.data(forKey: NotificationService.historyKey) ?? Data()
+        ) else { return }
+
+        for index in records.indices {
+            if records[index].type == type {
+                records[index] = NotificationRecord(
+                    id: records[index].id,
+                    title: records[index].title,
+                    body: records[index].body,
+                    type: records[index].type,
+                    cycleId: records[index].cycleId,
+                    nodeId: records[index].nodeId,
+                    group: records[index].group,
+                    sentAt: records[index].sentAt,
+                    isRead: true
+                )
+            }
+        }
+
+        if let data = try? JSONEncoder().encode(records) {
+            UserDefaults.standard.set(data, forKey: NotificationService.historyKey)
+        }
+    }
+
     /// 取消指定节点的所有待发送通知
     ///
     /// - Parameter nodeId: 节点 ID
@@ -645,6 +720,15 @@ public final class NotificationService: @unchecked Sendable {
 
         case .byOwner:
             // 按通知类型分组（因为通知记录不直接存储 owner）
+            var grouped: [String: [NotificationRecord]] = [:]
+            for record in allRecords {
+                let key = record.type.displayName
+                grouped[key, default: []].append(record)
+            }
+            return grouped.mapValues { Array($0.prefix(limit)) }
+
+        case .byType:
+            // 按通知类型分组
             var grouped: [String: [NotificationRecord]] = [:]
             for record in allRecords {
                 let key = record.type.displayName
@@ -905,6 +989,7 @@ public final class NotificationService: @unchecked Sendable {
             switch groupMode {
             case .byCycle: return cycleId?.uuidString
             case .byOwner: return nil
+            case .byType: return type.rawValue
             case .none: return nil
             }
         }()

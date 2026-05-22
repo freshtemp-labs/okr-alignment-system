@@ -376,6 +376,17 @@ public struct NotificationSettingsView: View {
                             Text("\(count)")
                                 .foregroundColor(.secondary)
                                 .font(.caption)
+                            Button {
+                                notificationService.markNotificationsAsRead(byType: type)
+                                loadHistory()
+                                loadStatistics()
+                            } label: {
+                                Image(systemName: "checkmark.circle")
+                                    .font(.caption2)
+                                    .foregroundStyle(.blue)
+                            }
+                            .buttonStyle(.plain)
+                            .help("标记此类型全部已读")
                         }
                     }
                 }
@@ -474,6 +485,25 @@ public struct NotificationSettingsView: View {
                             .foregroundStyle(.tertiary)
                     }
                     .padding(.vertical, 2)
+                    .contextMenu {
+                        Button {
+                            notificationService.snoozeNotification(recordId: record.id, minutes: 15)
+                        } label: {
+                            Label("延迟 15 分钟", systemImage: "clock.badge.questionmark")
+                        }
+                        Button {
+                            notificationService.snoozeNotification(recordId: record.id, minutes: 60)
+                        } label: {
+                            Label("延迟 1 小时", systemImage: "clock")
+                        }
+                        Divider()
+                        Button {
+                            notificationService.markNotificationAsRead(recordId: record.id)
+                            loadHistory()
+                        } label: {
+                            Label("标记已读", systemImage: "checkmark.circle")
+                        }
+                    }
                 }
 
                 if notificationHistory.count > 10 {

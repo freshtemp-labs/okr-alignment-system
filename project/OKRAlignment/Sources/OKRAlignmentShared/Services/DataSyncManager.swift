@@ -56,9 +56,24 @@ public final class DataSyncManager: ObservableObject {
     // MARK: - Private Properties
 
     private let maxHistoryCount = 100
+    private let maxErrorHistoryCount = 50
+    /// 设备名称
+    public var deviceName: String {
+        #if os(macOS)
+        return Host.current().localizedName ?? ProcessInfo.processInfo.hostName
+        #else
+        return ProcessInfo.processInfo.hostName
+        #endif
+    }
 
     /// 同步统计信息
     @Published public private(set) var statistics: SyncStatistics = SyncStatistics()
+
+    /// 最后一次同步错误
+    @Published public private(set) var lastError: SyncErrorInfo?
+
+    /// 同步错误历史
+    @Published public private(set) var errorHistory: [SyncErrorInfo] = []
 
     /// 是否正在自动同步
     @Published public var autoSyncEnabled: Bool {
@@ -87,6 +102,8 @@ public final class DataSyncManager: ObservableObject {
         self.autoSyncInterval = interval > 0 ? interval : 300
         loadHistory()
         loadStatistics()
+        loadPendingConflicts()
+        loadErrorHistory()
         if autoSyncEnabled {
             startAutoSync()
         }
@@ -110,7 +127,8 @@ public final class DataSyncManager: ObservableObject {
             conflictStrategy: conflictStrategy,
             itemsSynced: 0,
             conflictsFound: 0,
-            details: "同步开始..."
+            details: "同步开始...",
+            deviceName: deviceName
         )
         syncHistory.insert(entry, at: 0)
 
@@ -129,7 +147,8 @@ public final class DataSyncManager: ObservableObject {
             conflictStrategy: conflictStrategy,
             itemsSynced: 42,
             conflictsFound: 0,
-            details: "同步完成：42 项数据已同步"
+            details: "同步完成：42 项数据已同步",
+            deviceName: deviceName
         )
 
         if let index = syncHistory.firstIndex(where: { $0.id == entry.id }) {
@@ -160,6 +179,7 @@ public final class DataSyncManager: ObservableObject {
     /// 解决冲突
     public func resolveConflict(_ conflict: SyncConflict, resolution: ConflictResolution) {
         pendingConflicts.removeAll { $0.id == conflict.id }
+        savePendingConflicts()
 
         let detail = "冲突已解决: \(conflict.entityName) - \(resolution.displayName)"
         let entry = SyncHistoryEntry(
@@ -170,7 +190,8 @@ public final class DataSyncManager: ObservableObject {
             conflictStrategy: conflictStrategy,
             itemsSynced: 1,
             conflictsFound: 1,
-            details: detail
+            details: detail,
+            deviceName: deviceName
         )
         syncHistory.insert(entry, at: 0)
         saveHistory()
@@ -186,6 +207,32 @@ public final class DataSyncManager: ObservableObject {
     public func clearStatistics() {
         statistics = SyncStatistics()
         saveStatistics()
+    }
+
+    /// 报告同步错误
+    public func reportError(code: String, message: String, details: String? = nil) {
+        let error = SyncErrorInfo(errorCode: code, message: message, details: details)
+        lastError = error
+        errorHistory.insert(error, at: 0)
+        if errorHistory.count > maxErrorHistoryCount {
+            errorHistory = Array(errorHistory.prefix(maxErrorHistoryCount))
+        }
+        syncState = .error
+        saveErrorHistory()
+    }
+
+    /// 清除错误历史
+    public func clearErrorHistory() {
+        errorHistory.removeAll()
+        lastError = nil
+        saveErrorHistory()
+    }
+
+    /// 重置同步状态
+    public func resetSync() {
+        syncState = .idle
+        syncProgress = 0
+        lastError = nil
     }
 
     /// 启动自动同步
@@ -222,6 +269,7 @@ public final class DataSyncManager: ObservableObject {
             description: "本地和远程同时修改了同一节点"
         )
         pendingConflicts.append(conflict)
+        savePendingConflicts()
     }
 
     // MARK: - Persistence
@@ -283,6 +331,33 @@ public final class DataSyncManager: ObservableObject {
         guard let data = UserDefaults.standard.data(forKey: "okr_sync_history"),
               let entries = try? JSONDecoder().decode([SyncHistoryEntry].self, from: data) else { return }
         syncHistory = entries
+    }
+
+    // MARK: - Pending Conflicts Persistence
+
+    private func savePendingConflicts() {
+        guard let data = try? JSONEncoder().encode(pendingConflicts) else { return }
+        UserDefaults.standard.set(data, forKey: "okr_sync_pending_conflicts")
+    }
+
+    private func loadPendingConflicts() {
+        guard let data = UserDefaults.standard.data(forKey: "okr_sync_pending_conflicts"),
+              let conflicts = try? JSONDecoder().decode([SyncConflict].self, from: data) else { return }
+        pendingConflicts = conflicts
+    }
+
+    // MARK: - Error History Persistence
+
+    private func saveErrorHistory() {
+        guard let data = try? JSONEncoder().encode(errorHistory) else { return }
+        UserDefaults.standard.set(data, forKey: "okr_sync_error_history")
+    }
+
+    private func loadErrorHistory() {
+        guard let data = UserDefaults.standard.data(forKey: "okr_sync_error_history"),
+              let errors = try? JSONDecoder().decode([SyncErrorInfo].self, from: data) else { return }
+        errorHistory = errors
+        lastError = errors.first
     }
 }
 
@@ -397,6 +472,8 @@ public struct SyncHistoryEntry: Identifiable, Codable, Sendable {
     public let itemsSynced: Int
     public let conflictsFound: Int
     public let details: String
+    /// 同步设备名称
+    public let deviceName: String?
 
     public var duration: TimeInterval? {
         guard let endTime else { return nil }
@@ -479,7 +556,7 @@ public struct SyncStatistics: Codable, Sendable {
 // MARK: - Sync Conflict
 
 /// 同步冲突
-public struct SyncConflict: Identifiable, Sendable {
+public struct SyncConflict: Identifiable, Codable, Sendable {
     public let id: UUID
     public let entityName: String
     public let entityType: String
@@ -488,4 +565,43 @@ public struct SyncConflict: Identifiable, Sendable {
     public let localModifiedAt: Date
     public let remoteModifiedAt: Date
     public let description: String
+
+    public init(
+        id: UUID,
+        entityName: String,
+        entityType: String,
+        localVersion: Int,
+        remoteVersion: Int,
+        localModifiedAt: Date,
+        remoteModifiedAt: Date,
+        description: String
+    ) {
+        self.id = id
+        self.entityName = entityName
+        self.entityType = entityType
+        self.localVersion = localVersion
+        self.remoteVersion = remoteVersion
+        self.localModifiedAt = localModifiedAt
+        self.remoteModifiedAt = remoteModifiedAt
+        self.description = description
+    }
+}
+
+// MARK: - Sync Error
+
+/// 同步错误信息
+public struct SyncErrorInfo: Identifiable, Codable, Sendable {
+    public let id: UUID
+    public let timestamp: Date
+    public let errorCode: String
+    public let message: String
+    public let details: String?
+
+    public init(id: UUID = UUID(), timestamp: Date = Date(), errorCode: String, message: String, details: String? = nil) {
+        self.id = id
+        self.timestamp = timestamp
+        self.errorCode = errorCode
+        self.message = message
+        self.details = details
+    }
 }

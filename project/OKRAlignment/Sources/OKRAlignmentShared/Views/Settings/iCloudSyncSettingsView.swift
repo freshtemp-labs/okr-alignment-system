@@ -247,6 +247,24 @@ public struct iCloudSyncSettingsView: View {
                         color: .secondary
                     )
 
+                    // 设备信息
+                    statusRow(
+                        icon: "desktopcomputer",
+                        title: "当前设备",
+                        value: syncManager.deviceName,
+                        color: .secondary
+                    )
+
+                    // 错误状态
+                    if let error = syncManager.lastError {
+                        statusRow(
+                            icon: "exclamationmark.circle",
+                            title: "最后错误",
+                            value: error.message,
+                            color: .red
+                        )
+                    }
+
                     // 同步历史按钮
                     Button {
                         showSyncHistory.toggle()
@@ -509,6 +527,12 @@ private struct SyncHistoryRow: View {
                     Label("\(entry.itemsSynced) 项", systemImage: "doc")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+
+                    if let device = entry.deviceName {
+                        Label(device, systemImage: "desktopcomputer")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
 
