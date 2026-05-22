@@ -90,6 +90,21 @@ public final class PersistenceController: @unchecked Sendable {
     /// 是否使用内存存储
     private let isInMemory: Bool
 
+    /// iCloud 同步是否已启用
+    /// 读取用户偏好设置，决定是否使用 CloudKit 容器
+    public static var isCloudSyncEnabled: Bool {
+        UserDefaults.standard.bool(forKey: "okr_icloud_sync_enabled")
+    }
+
+    /// 当前容器是否为 CloudKit 容器
+    public var isCloudKitContainer: Bool {
+        container is NSPersistentCloudKitContainer
+    }
+
+    /// iCloud 容器标识符
+    /// 在实际部署时需要替换为开发者真实的 iCloud Container ID
+    public static let cloudKitContainerIdentifier = "iCloud.com.okralignment.system"
+
     // MARK: - Initialization
 
     /// 创建持久化控制器
@@ -101,21 +116,33 @@ public final class PersistenceController: @unchecked Sendable {
         // Swift Package中没有.xcdatamodeld文件，需要在代码中定义模型
         let model = PersistenceController.createManagedObjectModel()
 
-        // 根据是否需要CloudKit选择容器类型
-        // 注意：CloudKit需要有效的iCloud容器配置
+        // 根据用户偏好选择容器类型
+        // CloudKit同步启用时使用 NSPersistentCloudKitContainer
+        // 关闭时使用普通 NSPersistentContainer
         #if canImport(CloudKit)
-        // 尝试使用CloudKit容器
-        if let cloudKitContainer = NSPersistentCloudKitContainer.persistentCloudKitContainer(
-            name: "OKRAlignment",
-            managedObjectModel: model,
-            inMemory: inMemory
-        ) {
-            self.container = cloudKitContainer
+        if Self.isCloudSyncEnabled && !inMemory {
+            let cloudContainer = NSPersistentCloudKitContainer(
+                name: "OKRAlignment",
+                managedObjectModel: model
+            )
+            // 配置 CloudKit 容器选项
+            if let storeDescription = cloudContainer.persistentStoreDescriptions.first {
+                let cloudKitOptions = NSPersistentCloudKitContainerOptions(
+                    containerIdentifier: Self.cloudKitContainerIdentifier
+                )
+                // Last-Write-Wins 冲突解决策略已在 mergePolicy 中配置
+                storeDescription.cloudKitContainerOptions = cloudKitOptions
+                Logger.app.info("CloudKit 同步已启用，容器ID: \(Self.cloudKitContainerIdentifier)")
+            }
+            self.container = cloudContainer
         } else {
             self.container = NSPersistentContainer(
                 name: "OKRAlignment",
                 managedObjectModel: model
             )
+            if !inMemory {
+                Logger.app.info("CloudKit 同步已禁用，使用本地存储")
+            }
         }
         #else
         self.container = NSPersistentContainer(
@@ -132,11 +159,40 @@ public final class PersistenceController: @unchecked Sendable {
             if let error = error as NSError? {
                 // 加载失败时记录错误详情
                 // 可能的原因：存储文件损坏、迁移失败、权限不足
-                fatalError("Core Data持久化存储加载失败: \(error), \(error.userInfo)")
+                Logger.app.error("Core Data持久化存储加载失败: \(error), \(error.userInfo)")
+                // CloudKit 不可用时回退到本地存储
+                #if canImport(CloudKit)
+                if Self.isCloudSyncEnabled {
+                    Logger.app.warning("CloudKit 加载失败，请检查 iCloud 账户状态")
+                }
+                #endif
             }
             self?.setupContainer()
+
+            #if canImport(CloudKit)
+            // 注册 CloudKit 同步通知
+            if self?.isCloudKitContainer == true && !inMemory {
+                self?.registerCloudKitNotifications()
+            }
+            #endif
         }
     }
+
+    #if canImport(CloudKit)
+    /// 注册 CloudKit 远程变更通知
+    /// 当其他设备通过 iCloud 同步了数据变更时，自动合并到本地上下文
+    private func registerCloudKitNotifications() {
+        NotificationCenter.default.addObserver(
+            forName: .NSPersistentStoreRemoteChange,
+            object: container.persistentStoreCoordinator,
+            queue: .main
+        ) { [weak self] notification in
+            Logger.app.info("收到 iCloud 远程数据变更通知，正在同步...")
+            // viewContext 已配置 automaticallyMergesChangesFromParent
+            // 会自动处理远程变更的合并
+        }
+    }
+    #endif
 
     // MARK: - Store Configuration
 

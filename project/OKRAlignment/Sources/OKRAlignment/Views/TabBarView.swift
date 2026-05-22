@@ -344,6 +344,10 @@ struct iOSCycleListView: View {
 /// - 主题设置（预留）
 struct iOSSettingsView: View {
 
+    // MARK: - 主题管理
+
+    @Environment(ThemeManager.self) private var themeManager
+
     // MARK: - Body
 
     var body: some View {
@@ -377,9 +381,45 @@ struct iOSSettingsView: View {
                             .foregroundStyle(.tertiaryText)
                     }
 
+                    // iCloud 同步 Section
+                    Section {
+                        NavigationLink {
+                            iCloudSyncSettingsView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "icloud.fill")
+                                    .foregroundStyle(Color(red: 59/255, green: 130/255, blue: 246/255))
+                                Text("iCloud 同步")
+                                    .foregroundStyle(.primaryText)
+                            }
+                        }
+                    } header: {
+                        Text("数据同步")
+                            .font(.caption)
+                            .foregroundStyle(.secondaryText)
+                    } footer: {
+                        Text("启用 iCloud 同步后，您的 OKR 数据将在所有 Apple 设备间保持一致。")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiaryText)
+                    }
+
                     // 外观Section
                     Section {
-                        appearanceRow
+                        // 外观模式选择
+                        NavigationLink {
+                            AppearanceSettingsView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "moon.fill")
+                                    .foregroundStyle(Color(red: 139/255, green: 92/255, blue: 246/255))
+                                Text("外观模式")
+                                    .foregroundStyle(.primaryText)
+                                Spacer()
+                                Text(themeManager.appearanceMode.displayName)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondaryText)
+                            }
+                        }
                     } header: {
                         Text("外观")
                             .font(.caption)

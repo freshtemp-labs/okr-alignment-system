@@ -25,16 +25,16 @@ import OKRAlignmentShared
 @main
 struct OKRAlignmentMacApp: App {
 
+    // MARK: - 主题管理
+
+    /// 主题管理器
+    @State private var themeManager = ThemeManager.shared
+
     // MARK: - 初始化
 
     /// 应用初始化
     /// 在应用启动时执行一次性的设置操作
     init() {
-        // 设置深色模式为默认外观
-        if let window = NSApplication.shared.mainWindow {
-            window.appearance = NSAppearance(named: .darkAqua)
-        }
-
         // 注册默认用户偏好设置
         UserDefaults.standard.register(defaults: [
             "AppleInterfaceStyle": "Dark"
@@ -49,8 +49,9 @@ struct OKRAlignmentMacApp: App {
         // MARK: 主窗口
         WindowGroup("OKR Alignment") {
             MacTreeView()
-                // 强制深色模式外观
-                .preferredColorScheme(.dark)
+                // 使用用户选择的外观模式
+                .preferredColorScheme(themeManager.preferredColorScheme)
+                .environment(themeManager)
         }
         // 配置默认窗口尺寸
         .defaultSize(width: 1200, height: 800)
@@ -64,8 +65,24 @@ struct OKRAlignmentMacApp: App {
         // MARK: 设置窗口（可选）
         #if os(macOS)
         Settings {
-            Text("Settings")
-                .frame(width: 400, height: 300)
+            NavigationStack {
+                List {
+                    NavigationLink {
+                        AppearanceSettingsView()
+                    } label: {
+                        Label("外观", systemImage: "paintbrush")
+                    }
+
+                    NavigationLink {
+                        iCloudSyncSettingsView()
+                    } label: {
+                        Label("iCloud 同步", systemImage: "icloud")
+                    }
+                }
+                .listStyle(.sidebar)
+                .frame(width: 200)
+            }
+            .frame(width: 500, height: 350)
         }
         #endif
     }

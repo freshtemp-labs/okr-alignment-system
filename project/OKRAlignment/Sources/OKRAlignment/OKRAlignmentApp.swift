@@ -63,6 +63,11 @@ struct OKRAlignmentApp: App {
     /// @Observable类型，自动驱动依赖它的视图刷新
     @State private var cycleListViewModel: CycleListViewModel
 
+    // MARK: - 主题管理
+
+    /// 主题管理器 - 管理深色/浅色模式切换
+    @State private var themeManager = ThemeManager.shared
+
     // MARK: - 初始化
 
     /// 应用初始化
@@ -81,6 +86,9 @@ struct OKRAlignmentApp: App {
 
         // ===== 步骤3: 配置全局UI外观 =====
         configureAppearance()
+
+        // ===== 步骤4: 加载示例数据 =====
+        persistenceController.loadSampleDataIfNeeded()
     }
 
     // MARK: - App Body
@@ -92,9 +100,10 @@ struct OKRAlignmentApp: App {
                 // 注入共享的视图模型到环境
                 .environment(treeViewModel)
                 .environment(cycleListViewModel)
+                .environment(themeManager)
                 .environment(\.managedObjectContext, persistenceController.viewContext)
-                // 强制使用深色模式
-                .preferredColorScheme(.dark)
+                // 使用用户选择的外观模式（跟随系统/浅色/深色）
+                .preferredColorScheme(themeManager.preferredColorScheme)
                 // 设置强调色（交互式元素的高亮色）
                 .tint(Color(red: 59/255, green: 130/255, blue: 246/255))
                 // 应用启动时加载初始数据
