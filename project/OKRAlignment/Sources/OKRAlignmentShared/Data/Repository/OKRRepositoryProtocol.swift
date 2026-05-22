@@ -91,6 +91,20 @@ protocol OKRRepositoryProtocol: Sendable {
     /// - Throws: 验证错误或数据库写入错误
     func createCycle(_ cycle: OKRCycle) async throws -> OKRCycle
     
+    /// 更新现有周期
+    ///
+    /// - Parameter cycle: 包含更新数据的领域模型周期
+    /// - Returns: 更新后的周期
+    /// - Throws: 周期不存在错误或数据库写入错误
+    func updateCycle(_ cycle: OKRCycle) async throws -> OKRCycle
+    
+    /// 检查指定ID的节点是否存在
+    ///
+    /// - Parameter id: 节点唯一标识符
+    /// - Returns: 存在返回`true`，否则返回`false`
+    /// - Throws: 数据库查询错误
+    func nodeExists(id: UUID) async throws -> Bool
+    
     // MARK: - Persistence
     
     /// 保存所有未保存的更改到持久化存储

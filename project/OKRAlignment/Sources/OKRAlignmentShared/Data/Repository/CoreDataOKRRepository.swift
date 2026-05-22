@@ -109,13 +109,12 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
     
     // MARK: - Context Factory
     
-    /// 创建新的后台上下文用于写操作
+    /// 获取主线程viewContext用于写操作
     ///
-    /// 每个写操作使用独立的后台上下文，避免并发冲突。
-    private func newBackgroundContext() -> NSManagedObjectContext {
-        let context = container.newBackgroundContext()
+    /// 所有写操作统一使用viewContext，确保数据一致性。
+    private var writeContext: NSManagedObjectContext {
+        let context = container.viewContext
         context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-        context.automaticallyMergesChangesFromParent = true
         return context
     }
     
@@ -202,7 +201,7 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
     /// - Returns: 创建后的节点
     /// - Throws: `OKRRepositoryError.duplicateNodeId` 当ID已存在时
     public func createNode(_ node: OKRNode) async throws -> OKRNode {
-        let context = newBackgroundContext()
+        let context = writeContext
         
         return try await context.perform {
             // 检查ID是否已存在
@@ -231,20 +230,30 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
     /// - Returns: 更新后的节点
     /// - Throws: `OKRRepositoryError.nodeNotFound` 当节点不存在时
     public func updateNode(_ node: OKRNode) async throws -> OKRNode {
-        let context = newBackgroundContext()
+        let context = writeContext
         
         return try await context.perform {
             guard let existingEntity = try self.fetchNodeEntity(id: node.id, in: context) else {
                 throw OKRRepositoryError.nodeNotFound(node.id)
             }
             
-            // 删除旧实体以便完全重建（确保关系一致性）
-            context.delete(existingEntity)
-            
             do {
-                let entity = try DomainToEntityMapper.map(domain: node, context: context)
+                // 直接更新现有实体属性，保持关系完整
+                existingEntity.title = node.title
+                existingEntity.nodeDescription = node.nodeDescription
+                existingEntity.nodeType = node.nodeType.rawValue
+                existingEntity.scope = node.scope.rawValue
+                existingEntity.currentValue = node.currentValue
+                existingEntity.targetValue = node.targetValue
+                existingEntity.unit = node.unit
+                existingEntity.progress = node.progress
+                existingEntity.status = node.status.rawValue
+                existingEntity.ownerName = node.ownerName
+                existingEntity.updatedAt = Date()
+                existingEntity.sortOrder = Int32(node.sortOrder)
+                
                 try context.save()
-                return try EntityToDomainMapper.map(entity: entity)
+                return try EntityToDomainMapper.map(entity: existingEntity)
             } catch let error as OKRRepositoryError {
                 throw error
             } catch {
@@ -264,7 +273,7 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
     ///   - `OKRRepositoryError.nodeNotFound` 当节点不存在
     ///   - `OKRRepositoryError.hasChildren` 当非级联删除但存在子节点
     public func deleteNode(id: UUID, cascade: Bool) async throws {
-        let context = newBackgroundContext()
+        let context = writeContext
         
         try await context.perform {
             guard let entity = try self.fetchNodeEntity(id: id, in: context) else {
@@ -277,12 +286,12 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
                 throw OKRRepositoryError.hasChildren(id)
             }
             
-            // 级联删除子节点
-            if cascade && hasChildren {
+            // 级联删除：在递归内统一处理所有节点删除（包括自身）
+            if cascade {
                 self.deleteNodeEntityCascade(entity: entity, in: context)
+            } else {
+                context.delete(entity)
             }
-            
-            context.delete(entity)
             
             do {
                 try context.save()
@@ -308,7 +317,7 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
     ///   - `OKRRepositoryError.nodeNotFound` 当节点不存在
     ///   - `OKRRepositoryError.notALeafNode` 当节点不是叶子
     public func updateLeafValue(nodeId: UUID, newValue: Double) async throws -> OKRNode {
-        let context = newBackgroundContext()
+        let context = writeContext
         
         return try await context.perform {
             guard let entity = try self.fetchNodeEntity(id: nodeId, in: context) else {
@@ -371,7 +380,7 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
     /// - Returns: 创建后的周期
     /// - Throws: `OKRRepositoryError.duplicateCycleId` 当ID已存在时
     public func createCycle(_ cycle: OKRCycle) async throws -> OKRCycle {
-        let context = newBackgroundContext()
+        let context = writeContext
         
         return try await context.perform {
             // 检查ID是否已存在
@@ -390,6 +399,59 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
                 return EntityToDomainMapper.map(entity: entity)
             } catch let error as OKRRepositoryError {
                 throw error
+            } catch {
+                throw OKRRepositoryError.coreDataError(error.localizedDescription)
+            }
+        }
+    }
+    
+    /// 更新现有周期
+    ///
+    /// - Parameter cycle: 包含更新数据的周期领域模型
+    /// - Returns: 更新后的周期
+    /// - Throws: `OKRRepositoryError.cycleNotFound` 当周期不存在时
+    public func updateCycle(_ cycle: OKRCycle) async throws -> OKRCycle {
+        let context = writeContext
+        
+        return try await context.perform {
+            let request = NSFetchRequest<OKRCycleEntity>(entityName: "OKRCycleEntity")
+            request.predicate = NSPredicate(format: "id == %@", cycle.id as CVarArg)
+            request.fetchLimit = 1
+            
+            guard let entity = try context.fetch(request).first else {
+                throw OKRRepositoryError.cycleNotFound(cycle.id)
+            }
+            
+            entity.name = cycle.name
+            entity.startDate = cycle.startDate
+            entity.endDate = cycle.endDate
+            entity.isActive = cycle.isActive
+            entity.isArchived = cycle.isArchived
+            
+            do {
+                try context.save()
+                return EntityToDomainMapper.map(entity: entity)
+            } catch {
+                throw OKRRepositoryError.coreDataError(error.localizedDescription)
+            }
+        }
+    }
+    
+    /// 检查指定ID的节点是否存在
+    ///
+    /// - Parameter id: 节点唯一标识符
+    /// - Returns: 存在返回`true`，否则返回`false`
+    public func nodeExists(id: UUID) async throws -> Bool {
+        let context = container.newBackgroundContext()
+        
+        return try await context.perform {
+            let request = NSFetchRequest<OKRNodeEntity>(entityName: "OKRNodeEntity")
+            request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+            request.fetchLimit = 1
+            
+            do {
+                let count = try context.count(for: request)
+                return count > 0
             } catch {
                 throw OKRRepositoryError.coreDataError(error.localizedDescription)
             }
@@ -447,17 +509,21 @@ public final class CoreDataOKRRepository: OKRRepositoryProtocol, @unchecked Send
     
     /// 级联删除节点及其所有子节点
     ///
-    /// 递归遍历并删除所有后代节点。
+    /// 递归遍历并删除所有后代节点，最后删除自身。
+    /// 所有删除操作统一在此方法内处理，避免父节点先被删除导致子节点无法访问。
     ///
     /// - Parameters:
     ///   - entity: 要删除的节点实体
     ///   - context: 托管对象上下文
     private func deleteNodeEntityCascade(entity: OKRNodeEntity, in context: NSManagedObjectContext) {
-        guard let children = entity.children?.array as? [OKRNodeEntity] else { return }
-        for child in children {
-            deleteNodeEntityCascade(entity: child, in: context)
-            context.delete(child)
+        // 先递归删除所有子节点（从叶子到根的顺序）
+        if let children = entity.children?.array as? [OKRNodeEntity] {
+            for child in children {
+                deleteNodeEntityCascade(entity: child, in: context)
+            }
         }
+        // 最后删除自身
+        context.delete(entity)
     }
     
     /// 向上级联更新父节点的进度

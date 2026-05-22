@@ -48,6 +48,10 @@ public final class NodeEditViewModel {
     /// 加载当前周期下的所有可作为父节点的Objective
     public var availableParents: [OKRNode] = []
 
+    /// 是否为新创建节点（而非编辑现有节点）
+    /// 通过显式检查节点是否存在于Repository来判断
+    public var isNewNode: Bool = true
+
     // MARK: - 计算属性
 
     /// 表单是否有效（无验证错误）
@@ -70,13 +74,6 @@ public final class NodeEditViewModel {
         case .keyResult:
             return "关键结果"
         }
-    }
-
-    /// 是否为新创建节点（而非编辑现有节点）
-    /// 通过检查创建时间和当前时间的接近程度判断
-    public var isNewNode: Bool {
-        // 如果节点创建时间距离现在很近（10秒内），认为是新节点
-        Date().timeIntervalSince(node.createdAt) < 10.0
     }
 
     /// 标题是否为空（用于实时验证提示）
@@ -121,6 +118,22 @@ public final class NodeEditViewModel {
         self.repository = repository
         // 保存验证器依赖
         self.validator = validator
+    }
+
+    // MARK: - 公开接口: 节点状态检查
+
+    /// 检查节点是否存在于Repository中
+    /// ---------------------------------
+    /// 通过显式查询Repository判断节点是新建还是编辑。
+    /// 调用此方法会更新`isNewNode`属性。
+    public func checkNodeExists() async {
+        do {
+            let exists = try await repository.nodeExists(id: node.id)
+            isNewNode = !exists
+        } catch {
+            // 查询失败时默认视为新节点
+            isNewNode = true
+        }
     }
 
     // MARK: - 公开接口: 表单验证
@@ -219,10 +232,11 @@ public final class NodeEditViewModel {
 
         do {
             // ===== 步骤3: 判断创建还是更新 =====
-            // 对于新建节点，createdAt接近当前时间
+            // 通过显式查询Repository判断节点是否存在
             let savedNode: OKRNode
+            let exists = try await repository.nodeExists(id: node.id)
 
-            if isNewNode {
+            if !exists {
                 // ===== 创建新节点 =====
                 // 调用Repository创建方法
                 savedNode = try await repository.createNode(node)

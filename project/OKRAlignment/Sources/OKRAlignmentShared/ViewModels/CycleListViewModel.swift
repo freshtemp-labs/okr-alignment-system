@@ -303,13 +303,20 @@ public final class CycleListViewModel {
         updatedCycle.isArchived = true
         updatedCycle.isActive = false // 归档时同时取消激活状态
 
-        // TODO: 需要Repository提供updateCycle方法
-        // 目前仅更新本地状态
-        cycles[index] = updatedCycle
+        do {
+            // 持久化到Repository
+            let savedCycle = try await repository.updateCycle(updatedCycle)
+            try await repository.save()
+            
+            // 更新本地状态
+            cycles[index] = savedCycle
 
-        // 如果归档的是当前选中周期，取消选择
-        if selectedCycle?.id == cycleId {
-            selectedCycle = nil
+            // 如果归档的是当前选中周期，取消选择
+            if selectedCycle?.id == cycleId {
+                selectedCycle = nil
+            }
+        } catch {
+            errorMessage = "归档周期失败: \(error.localizedDescription)"
         }
     }
 
@@ -319,22 +326,32 @@ public final class CycleListViewModel {
     ///
     /// - Parameter cycleId: 要激活的周期ID
     public func activateCycle(_ cycleId: UUID) async {
-        // 先取消所有周期的活跃状态
-        for i in cycles.indices {
-            var cycle = cycles[i]
-            if cycle.isActive {
-                cycle.isActive = false
-                cycles[i] = cycle
+        do {
+            // 先取消所有周期的活跃状态
+            for i in cycles.indices {
+                if cycles[i].isActive {
+                    var cycle = cycles[i]
+                    cycle.isActive = false
+                    let savedCycle = try await repository.updateCycle(cycle)
+                    try await repository.save()
+                    cycles[i] = savedCycle
+                }
             }
-            // 将目标周期设为活跃
-            if cycle.id == cycleId {
-                cycle.isActive = true
-                cycles[i] = cycle
-            }
-        }
 
-        // 更新选中状态为激活的周期
-        selectedCycle = cycles.first { $0.id == cycleId }
+            // 将目标周期设为活跃
+            if let targetIndex = cycles.firstIndex(where: { $0.id == cycleId }) {
+                var targetCycle = cycles[targetIndex]
+                targetCycle.isActive = true
+                let savedCycle = try await repository.updateCycle(targetCycle)
+                try await repository.save()
+                cycles[targetIndex] = savedCycle
+            }
+
+            // 更新选中状态为激活的周期
+            selectedCycle = cycles.first { $0.id == cycleId }
+        } catch {
+            errorMessage = "激活周期失败: \(error.localizedDescription)"
+        }
     }
 
     /// 获取指定ID的周期
