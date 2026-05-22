@@ -99,6 +99,13 @@ public struct LeafControls: View {
             .buttonStyle(.plain)
             .disabled(!canDecrement)
             .help("Decrease progress by 10%")
+            .accessibilityLabel("Decrease progress by 10 percent")
+            .accessibilityHint(canDecrement ? "Current value: \(Int(node.currentValue)). Tap to decrease." : "Already at minimum value")
+            .accessibilityAction(named: "Decrease Progress") {
+                if canDecrement {
+                    onUpdate(node.id, decrementDelta)
+                }
+            }
             
             Button {
                 guard canIncrement else { return }
@@ -116,11 +123,19 @@ public struct LeafControls: View {
             .buttonStyle(.plain)
             .disabled(!canIncrement)
             .help("Increase progress by 10%")
+            .accessibilityLabel("Increase progress by 10 percent")
+            .accessibilityHint(canIncrement ? "Current value: \(Int(node.currentValue)). Tap to increase." : "Already at target value")
+            .accessibilityAction(named: "Increase Progress") {
+                if canIncrement {
+                    onUpdate(node.id, incrementDelta)
+                }
+            }
         }
         .opacity(isVisible ? 1.0 : 0.0)
         .animation(.easeInOut(duration: 0.2), value: isVisible)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Progress adjustment controls")
+        .accessibilityLabel("Progress adjustment controls for \(node.title)")
+        .accessibilityValue("Current: \(Int(node.currentValue)) of \(Int(node.targetValue)) \(node.unit ?? "")")
     }
 }
 
@@ -174,7 +189,6 @@ public struct LeafControls: View {
 //         children: [],
 //         cycleId: nil
 //     )
-//     
 //     LeafControls(node: sampleNode, isVisible: false) { _, _ in }
 //         .padding()
 //         .background(Color(red: 15/255, green: 23/255, blue: 42/255))

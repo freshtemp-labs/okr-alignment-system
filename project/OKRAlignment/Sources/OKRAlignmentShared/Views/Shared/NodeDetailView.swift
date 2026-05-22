@@ -70,6 +70,9 @@ public struct NodeDetailView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Close detail panel")
+                .accessibilityLabel("Close detail panel")
+                .accessibilityHint("Closes the node detail view")
+                .keyboardShortcut(.cancelAction)
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
@@ -116,6 +119,7 @@ public struct NodeDetailView: View {
                         Image(systemName: "person.circle.fill")
                             .font(.system(size: 16))
                             .foregroundStyle(Color(red: 59/255, green: 130/255, blue: 246/255))
+                            .accessibilityHidden(true)
                         Text(node.ownerName)
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(.white)
@@ -185,6 +189,7 @@ public struct NodeDetailView: View {
                                 .font(.system(size: 11))
                                 .foregroundStyle(sectionLabelColor)
                                 .frame(width: 16)
+                                .accessibilityHidden(true)
                             Text("Created: \(formattedDate(node.createdAt))")
                                 .font(.system(size: 11))
                                 .foregroundStyle(sectionLabelColor)
@@ -194,6 +199,7 @@ public struct NodeDetailView: View {
                                 .font(.system(size: 11))
                                 .foregroundStyle(sectionLabelColor)
                                 .frame(width: 16)
+                                .accessibilityHidden(true)
                             Text("Updated: \(formattedDate(node.updatedAt))")
                                 .font(.system(size: 11))
                                 .foregroundStyle(sectionLabelColor)
@@ -230,8 +236,12 @@ public struct NodeDetailView: View {
             .buttonStyle(.plain)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            .accessibilityLabel("Edit this node")
+            .accessibilityLabel("Edit \(node.title)")
+            .accessibilityHint("Opens the edit form for this node")
+            .keyboardShortcut("e", modifiers: .command)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Detail panel for \(node.title)")
     }
 
     // MARK: - Subviews
@@ -268,6 +278,8 @@ public struct NodeDetailView: View {
         .padding(10)
         .background(Color.white.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(child.title), \(child.progressPercentage) complete")
     }
 
     // MARK: - Helpers
@@ -308,5 +320,7 @@ struct DetailItem: View {
                 .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(value)")
     }
 }

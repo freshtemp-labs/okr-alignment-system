@@ -136,6 +136,7 @@ public struct TreeConnector: View {
             .frame(height: verticalGap)
             .animation(.easeInOut(duration: 0.3), value: isExpanded)
             .animation(.easeInOut(duration: 0.3), value: childCount)
+            .accessibilityHidden(true) // Decorative element, not meaningful to screen readers
         }
     }
 }

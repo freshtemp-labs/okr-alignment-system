@@ -90,6 +90,27 @@ public struct OKRNodeCard: View {
         scopeBorderColor.opacity(0.3)
     }
     
+    /// Accessibility description for the node type.
+    private var nodeTypeDescription: String {
+        node.nodeType == .objective ? "Objective" : "Key Result"
+    }
+    
+    /// Accessibility description for the scope.
+    private var scopeDescription: String {
+        node.scope == .enterprise ? "Enterprise" : "Personal"
+    }
+    
+    /// Accessibility description for the status.
+    private var statusDescription: String {
+        switch node.status {
+        case .notStarted: return "Not started"
+        case .inProgress: return "In progress"
+        case .atRisk: return "At risk"
+        case .completed: return "Completed"
+        case .cancelled: return "Cancelled"
+        }
+    }
+    
     // MARK: - Body
     
     public var body: some View {
@@ -97,6 +118,7 @@ public struct OKRNodeCard: View {
             // Top colored border
             scopeBorderColor
                 .frame(height: topBorderHeight)
+                .accessibilityHidden(true)
             
             // Card content
             VStack(alignment: .leading, spacing: 10) {
@@ -159,6 +181,7 @@ public struct OKRNodeCard: View {
                         Spacer()
                     }
                     .padding(.top, 2)
+                    .accessibilityHidden(true)
                 }
             }
             .padding(14)
@@ -195,9 +218,26 @@ public struct OKRNodeCard: View {
         #endif
         // Accessibility
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(node.nodeType == .objective ? "Objective" : "Key Result"): \(node.title), progress \(node.progressPercentage)")
-        .accessibilityHint(node.children.isEmpty ? "" : "Double tap to \(isExpanded ? "collapse" : "expand") children")
+        .accessibilityLabel("\(nodeTypeDescription): \(node.title)")
+        .accessibilityValue("\(scopeDescription) scope, \(node.progressPercentage) progress, \(statusDescription), owner \(node.ownerName)")
+        .accessibilityHint(
+            node.children.isEmpty
+                ? (node.isLeaf ? "Leaf key result. Adjust progress using controls." : "")
+                : (isExpanded ? "Double tap to collapse \(node.children.count) children" : "Double tap to expand \(node.children.count) children")
+        )
         .accessibilityAddTraits(.isButton)
+        #if os(macOS)
+        .accessibilityAction(named: "Expand") {
+            if !node.children.isEmpty && !isExpanded {
+                withAnimation { isExpanded = true }
+            }
+        }
+        .accessibilityAction(named: "Collapse") {
+            if !node.children.isEmpty && isExpanded {
+                withAnimation { isExpanded = false }
+            }
+        }
+        #endif
     }
 }
 

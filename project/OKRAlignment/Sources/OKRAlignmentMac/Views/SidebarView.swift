@@ -10,7 +10,7 @@ import OKRAlignmentShared
 /// - Selection state with highlighted active cycle
 /// - New cycle creation button at the bottom
 /// - Search/filter functionality for cycles
-/// - Export button
+/// - Export and Import buttons
 /// - Cycle status color indicators
 ///
 public struct SidebarView: View {
@@ -37,6 +37,9 @@ public struct SidebarView: View {
     /// Callback when the export button is tapped.
     let onExport: (() -> Void)?
     
+    /// Callback when the import button is tapped.
+    let onImport: (() -> Void)?
+    
     /// Search text for filtering cycles.
     @State private var searchText: String = ""
     
@@ -61,7 +64,8 @@ public struct SidebarView: View {
         onDeleteCycle: @escaping (UUID) -> Void = { _ in },
         onArchiveCycle: ((UUID) -> Void)? = nil,
         onActivateCycle: ((UUID) -> Void)? = nil,
-        onExport: (() -> Void)? = nil
+        onExport: (() -> Void)? = nil,
+        onImport: (() -> Void)? = nil
     ) {
         self.cycles = cycles
         self._selectedCycleId = selectedCycleId
@@ -70,6 +74,7 @@ public struct SidebarView: View {
         self.onArchiveCycle = onArchiveCycle
         self.onActivateCycle = onActivateCycle
         self.onExport = onExport
+        self.onImport = onImport
     }
     
     // MARK: - Computed Properties
@@ -121,6 +126,7 @@ public struct SidebarView: View {
             }
             .accessibilityLabel("Cycle: \(cycle.name)")
             .accessibilityValue(cycleStatusText(cycle))
+            .accessibilityHint("Select to view OKR tree for this cycle")
             .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
     
@@ -148,17 +154,22 @@ public struct SidebarView: View {
             .padding(.horizontal, 16)
             .padding(.top, 16)
             .padding(.bottom, 8)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Cycles header, \(cycles.count) cycles available")
             
             // Search field
             HStack {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 11))
                     .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
+                    .accessibilityHidden(true)
                 
                 TextField("Filter cycles", text: $searchText)
                     .font(.system(size: 12))
                     .textFieldStyle(.plain)
                     .foregroundStyle(.white)
+                    .accessibilityLabel("Filter cycles")
+                    .accessibilityHint("Type to filter the cycle list")
                 
                 if !searchText.isEmpty {
                     Button {
@@ -169,6 +180,7 @@ public struct SidebarView: View {
                             .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(8)
@@ -203,6 +215,7 @@ public struct SidebarView: View {
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
             .background(sidebarBackground)
+            .accessibilityLabel("Cycle list")
             
             Divider()
                 .background(Color.white.opacity(0.08))
@@ -230,25 +243,51 @@ public struct SidebarView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Create new cycle")
+                .accessibilityHint("Opens a form to create a new OKR cycle")
                 
-                // Export button
-                if onExport != nil {
-                    Button {
-                        onExport?()
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 13))
-                            Text("Export")
-                                .font(.system(size: 12, weight: .medium))
+                // Import/Export row
+                HStack(spacing: 6) {
+                    // Import button
+                    if onImport != nil {
+                        Button {
+                            onImport?()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "square.and.arrow.down")
+                                    .font(.system(size: 12))
+                                Text("Import")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                            .frame(maxWidth: .infinity, minHeight: 28)
+                            .background(Color.white.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
-                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
-                        .frame(maxWidth: .infinity, minHeight: 28)
-                        .background(Color.white.opacity(0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Import OKR data")
+                        .accessibilityHint("Opens a file dialog to import OKR data from a JSON file")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Export OKR data")
+                    
+                    // Export button
+                    if onExport != nil {
+                        Button {
+                            onExport?()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 12))
+                                Text("Export")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                            .frame(maxWidth: .infinity, minHeight: 28)
+                            .background(Color.white.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Export OKR data")
+                        .accessibilityHint("Opens a save dialog to export OKR data as JSON or CSV")
+                    }
                 }
             }
             .padding(.horizontal, 12)
@@ -299,6 +338,7 @@ struct CycleRow: View {
             Circle()
                 .fill(statusColor)
                 .frame(width: 8, height: 8)
+                .accessibilityHidden(true)
             
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {

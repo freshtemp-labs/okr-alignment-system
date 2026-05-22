@@ -10,7 +10,7 @@ import AppKit
 /// The main macOS tree view with a three-column NavigationSplitView layout.
 ///
 /// `MacTreeView` provides the primary macOS interface for the OKR Alignment System:
-/// - **Sidebar**: Lists available OKR cycles with selection, status colors, and export
+/// - **Sidebar**: Lists available OKR cycles with selection, status colors, import/export
 /// - **Main Content**: Displays the interactive OKR tree visualization
 /// - **Detail Panel**: Shows detailed information for the selected node
 /// - **Toolbar**: Search, new, edit, delete actions with keyboard shortcuts
@@ -61,6 +61,12 @@ public struct MacTreeView: View {
     /// The set of expanded node IDs (for search result navigation).
     @State private var expandedNodeIds: Set<UUID> = []
     
+    /// Whether an import/export operation is in progress.
+    @State private var isDataOperationInProgress: Bool = false
+    
+    /// Status message for data operations.
+    @State private var dataOperationMessage: String? = nil
+    
     // MARK: - Constants
     
     private let detailMinWidth: CGFloat = 260
@@ -88,7 +94,8 @@ public struct MacTreeView: View {
                         await refreshCyclesAndTree()
                     }
                 },
-                onExport: { showExportPanel() }
+                onExport: { showExportPanel() },
+                onImport: { showImportPanel() }
             )
             .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
         } detail: {
@@ -163,6 +170,7 @@ public struct MacTreeView: View {
     private var mainContent: some View {
         if viewModel.isLoading {
             LoadingView(message: "Loading OKR tree...")
+                .accessibilityLabel("Loading OKR tree")
         } else if let errorMessage = viewModel.errorMessage {
             ErrorView(message: errorMessage) {
                 Task {
@@ -238,10 +246,13 @@ public struct MacTreeView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
+                        .accessibilityHidden(true)
                     
                     TextField("Search OKRs...", text: $searchText)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 200)
+                        .accessibilityLabel("Search OKRs")
+                        .accessibilityHint("Type to search OKR nodes by title or owner")
                         .onChange(of: searchText) { _, newValue in
                             performSearch(query: newValue)
                         }
@@ -261,11 +272,13 @@ public struct MacTreeView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("Clear search")
                     }
                     
                     Text("\(searchResultNodeIds.count) found")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .accessibilityLabel("\(searchResultNodeIds.count) results found")
                     
                     Button("Cancel") {
                         isSearchActive = false
@@ -273,6 +286,7 @@ public struct MacTreeView: View {
                         searchResultNodeIds = []
                     }
                     .font(.caption)
+                    .accessibilityLabel("Cancel search")
                 }
             }
         }
@@ -289,6 +303,8 @@ public struct MacTreeView: View {
             .disabled(viewModel.isLoading)
             .help("Refresh tree (⌘R)")
             .keyboardShortcut("r", modifiers: .command)
+            .accessibilityLabel("Refresh tree")
+            .accessibilityHint("Reloads the OKR tree data")
             
             Divider()
             
@@ -302,6 +318,8 @@ public struct MacTreeView: View {
             .disabled(viewModel.isLoading)
             .help("Create new OKR node (⌘N)")
             .keyboardShortcut("n", modifiers: .command)
+            .accessibilityLabel("Create new node")
+            .accessibilityHint("Opens the form to create a new OKR node")
             
             // Edit button
             Button {
@@ -313,6 +331,8 @@ public struct MacTreeView: View {
             .disabled(selectedNode == nil || viewModel.isLoading)
             .help("Edit selected node (⌘E)")
             .keyboardShortcut("e", modifiers: .command)
+            .accessibilityLabel("Edit selected node")
+            .accessibilityHint(selectedNode != nil ? "Opens the edit form for \(selectedNode!.title)" : "Select a node first")
             
             // Delete button
             Button {
@@ -323,6 +343,8 @@ public struct MacTreeView: View {
             .disabled(selectedNode == nil || viewModel.isLoading)
             .help("Delete selected node (⌫)")
             .keyboardShortcut(.delete, modifiers: [])
+            .accessibilityLabel("Delete selected node")
+            .accessibilityHint(selectedNode != nil ? "Deletes \(selectedNode!.title)" : "Select a node first")
             
             // Search toggle button
             Button {
@@ -338,6 +360,8 @@ public struct MacTreeView: View {
             }
             .help("Search OKRs (⌘F)")
             .keyboardShortcut("f", modifiers: .command)
+            .accessibilityLabel("Toggle search")
+            .accessibilityHint(isSearchActive ? "Close search field" : "Open search field to search OKRs")
         }
     }
     
@@ -462,30 +486,125 @@ public struct MacTreeView: View {
     /// Shows the macOS save panel for exporting OKR data.
     private func showExportPanel() {
         #if os(macOS)
-        guard let rootNode = viewModel.rootNode else { return }
-        
+        // Export all data (all cycles with their trees)
         let panel = NSSavePanel()
         panel.title = "Export OKR Data"
-        panel.allowedContentTypes = [.commaSeparatedText, .json]
-        panel.nameFieldStringValue = "okr-export"
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "okr-export-\(formattedDateShort(Date()))"
         panel.canCreateDirectories = true
         
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             
-            let fileExtension = url.pathExtension.lowercased()
-            
-            if fileExtension == "json" {
-                if let jsonData = OKRExportService.exportToJSON(rootNode: rootNode) {
-                    try? jsonData.write(to: url)
+            // Build trees for all cycles
+            var trees: [UUID: OKRNode?] = [:]
+            for cycle in cycles {
+                // If the current tree belongs to this cycle, include it
+                if selectedCycleId == cycle.id, let root = viewModel.rootNode {
+                    trees[cycle.id] = root
                 }
-            } else {
-                // Default to CSV
-                let csvString = OKRExportService.exportToCSV(rootNode: rootNode)
-                try? csvString.write(to: url, atomically: true, encoding: .utf8)
+            }
+            
+            if let jsonData = OKRExportService.exportFullData(cycles: cycles, trees: trees) {
+                do {
+                    try jsonData.write(to: url)
+                    DispatchQueue.main.async {
+                        dataOperationMessage = "Export completed successfully"
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        dataOperationMessage = "Export failed: \(error.localizedDescription)"
+                    }
+                }
             }
         }
         #endif
+    }
+    
+    // MARK: - Import
+    
+    /// Shows the macOS open panel for importing OKR data.
+    private func showImportPanel() {
+        #if os(macOS)
+        let panel = NSOpenPanel()
+        panel.title = "Import OKR Data"
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            
+            do {
+                let data = try Data(contentsOf: url)
+                let result = try OKRExportService.importFromJSON(data: data)
+                
+                DispatchQueue.main.async {
+                    isDataOperationInProgress = true
+                    
+                    Task {
+                        // Import cycles and nodes into the repository
+                        let repository = CoreDataOKRRepository(
+                            container: PersistenceController.shared.container
+                        )
+                        
+                        for cycle in result.cycles {
+                            do {
+                                _ = try await repository.createCycle(cycle)
+                                if let rootNode = result.nodesByCycle[cycle.id] {
+                                    try await importNodeTree(rootNode, cycleId: cycle.id, repository: repository)
+                                }
+                            } catch {
+                                dataOperationMessage = "Failed to import cycle '\(cycle.name)': \(error.localizedDescription)"
+                            }
+                        }
+                        
+                        // Import standalone nodes (from single-tree export format)
+                        for node in result.standaloneNodes {
+                            if let cycleId = selectedCycleId {
+                                try await importNodeTree(node, cycleId: cycleId, repository: repository)
+                            }
+                        }
+                        
+                        try await repository.save()
+                        
+                        // Refresh the UI
+                        await cycleViewModel.loadCycles()
+                        cycles = cycleViewModel.cycles
+                        
+                        if let firstCycle = result.cycles.first {
+                            selectedCycleId = firstCycle.id
+                            await viewModel.loadTree(cycleId: firstCycle.id)
+                        } else {
+                            await viewModel.loadTree(cycleId: selectedCycleId)
+                        }
+                        
+                        isDataOperationInProgress = false
+                        dataOperationMessage = "Import completed: \(result.cycles.count) cycle(s) imported"
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    dataOperationMessage = "Import failed: \(error.localizedDescription)"
+                }
+            }
+        }
+        #endif
+    }
+    
+    /// Recursively imports a node tree into the repository.
+    private func importNodeTree(_ node: OKRNode, cycleId: UUID, repository: OKRRepositoryProtocol) async throws {
+        var nodeToCreate = node
+        nodeToCreate.cycleId = cycleId
+        _ = try await repository.createNode(nodeToCreate)
+        
+        for child in node.children {
+            var childToCreate = child
+            childToCreate.parentId = node.id
+            childToCreate.cycleId = cycleId
+            try await importNodeTree(childToCreate, cycleId: cycleId, repository: repository)
+        }
     }
     
     // MARK: - Data Loading
@@ -512,7 +631,7 @@ public struct MacTreeView: View {
         await cycleViewModel.loadCycles()
         cycles = cycleViewModel.cycles
         
-        // If the selected cycle was archived, clear selection
+        // If the selected cycle was archived, keep selection
         if let selectedId = selectedCycleId,
            let updatedCycle = cycles.first(where: { $0.id == selectedId }),
            updatedCycle.isArchived {
@@ -544,6 +663,13 @@ public struct MacTreeView: View {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    /// Formats a date for file naming (YYYY-MM-DD).
+    private func formattedDateShort(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
     }
     

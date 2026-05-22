@@ -58,6 +58,15 @@ public struct TreeNodeRow: View {
         self.onUpdateProgress = onUpdateProgress
     }
     
+    // MARK: - Computed Properties
+    
+    /// Summary description for accessibility.
+    private var nodeSummary: String {
+        let types = nodes.map { $0.nodeType == .objective ? "Objective" : "Key Result" }
+        let titles = nodes.map { $0.title }
+        return "Tree level with \(nodes.count) \(nodes.count == 1 ? "node" : "nodes"): \(titles.joined(separator: ", "))"
+    }
+    
     // MARK: - Body
     
     public var body: some View {
@@ -89,7 +98,8 @@ public struct TreeNodeRow: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, nodeSpacing)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Tree level with \(nodes.count) node\(nodes.count == 1 ? "" : "s")")
+        .accessibilityLabel(nodeSummary)
+        .accessibilityHint("Contains \(nodes.count) sibling nodes at the same level")
     }
 }
 

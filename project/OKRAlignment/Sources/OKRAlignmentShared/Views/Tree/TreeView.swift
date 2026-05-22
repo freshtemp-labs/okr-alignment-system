@@ -60,6 +60,20 @@ public struct TreeView: View {
         self.onUpdateProgress = onUpdateProgress
     }
     
+    // MARK: - Computed Properties
+    
+    /// Count of total nodes in the tree for accessibility.
+    private var totalNodeCount: Int {
+        guard let root = rootNode else { return 0 }
+        return countNodes(in: root)
+    }
+    
+    /// Count of expanded nodes for accessibility.
+    private var expandedCount: Int {
+        guard let root = rootNode else { return 0 }
+        return countExpanded(in: root)
+    }
+    
     // MARK: - Body
     
     public var body: some View {
@@ -101,6 +115,14 @@ public struct TreeView: View {
             if let rootNode = rootNode, expandedNodeIds.isEmpty {
                 expandedNodeIds.insert(rootNode.id)
             }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("OKR tree with \(totalNodeCount) nodes, \(expandedCount) expanded")
+        .accessibilityAction(named: "Expand All") {
+            expandAll()
+        }
+        .accessibilityAction(named: "Collapse All") {
+            collapseAll()
         }
     }
     
@@ -167,6 +189,53 @@ public struct TreeView: View {
     private func calculateRowWidth(for count: Int) -> CGFloat {
         let cardWidth: CGFloat = 280
         return CGFloat(count) * cardWidth + CGFloat(count - 1) * nodeSpacing + 80 // padding
+    }
+    
+    /// Recursively counts all nodes in the tree.
+    private func countNodes(in node: OKRNode) -> Int {
+        var count = 1
+        for child in node.children {
+            count += countNodes(in: child)
+        }
+        return count
+    }
+    
+    /// Recursively counts expanded nodes in the tree.
+    private func countExpanded(in node: OKRNode) -> Int {
+        var count = expandedNodeIds.contains(node.id) ? 1 : 0
+        for child in node.children {
+            count += countExpanded(in: child)
+        }
+        return count
+    }
+    
+    /// Expands all nodes in the tree.
+    private func expandAll() {
+        guard let root = rootNode else { return }
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            collectAllIds(from: root, into: &expandedNodeIds)
+        }
+    }
+    
+    /// Collapses all nodes in the tree.
+    private func collapseAll() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            expandedNodeIds.removeAll()
+            // Keep root expanded
+            if let root = rootNode {
+                expandedNodeIds.insert(root.id)
+            }
+        }
+    }
+    
+    /// Recursively collects all node IDs into a set.
+    private func collectAllIds(from node: OKRNode, into set: inout Set<UUID>) {
+        if !node.children.isEmpty {
+            set.insert(node.id)
+        }
+        for child in node.children {
+            collectAllIds(from: child, into: &set)
+        }
     }
 }
 

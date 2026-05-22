@@ -83,6 +83,14 @@ public struct ProgressBar: View {
         Color.white.opacity(0.08)
     }
     
+    /// Human-readable progress status for accessibility.
+    private var progressStatus: String {
+        if progress >= 100 { return "Complete" }
+        if progress >= 70 { return "On track" }
+        if progress >= 30 { return "In progress" }
+        return "At risk"
+    }
+    
     // MARK: - Body
     
     public var body: some View {
@@ -111,7 +119,7 @@ public struct ProgressBar: View {
         .frame(height: 6)
         .animation(.easeInOut(duration: 0.5), value: progress)
         .accessibilityLabel("Progress")
-        .accessibilityValue("\(Int(progress)) percent")
+        .accessibilityValue("\(Int(progress)) percent complete, \(progressStatus)")
     }
 
     /// Color status based on progress thresholds:

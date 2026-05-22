@@ -58,6 +58,14 @@ public struct AnimatedProgressIndicator: View {
         )
     }
 
+    /// Human-readable progress status for accessibility.
+    private var progressStatus: String {
+        if progress >= 100 { return "Complete" }
+        if progress >= 70 { return "On track" }
+        if progress >= 30 { return "In progress" }
+        return "At risk"
+    }
+
     // MARK: - Body
 
     public var body: some View {
@@ -84,10 +92,11 @@ public struct AnimatedProgressIndicator: View {
                     .opacity(progress > 0 ? 1 : 0)
                     .padding(.trailing, max(0, CGFloat(1.0 - progress / 100.0) * 260))
             }
+            .accessibilityHidden(true) // Decorative dot
         )
         .animation(.easeInOut(duration: 0.5), value: progress)
         .animation(.easeInOut(duration: 0.3), value: progressColor)
         .accessibilityLabel("Progress")
-        .accessibilityValue("\(Int(progress)) percent")
+        .accessibilityValue("\(Int(progress)) percent, \(progressStatus)")
     }
 }
