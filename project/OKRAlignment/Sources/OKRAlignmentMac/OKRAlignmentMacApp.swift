@@ -96,6 +96,18 @@ struct OKRAlignmentMacApp: App {
                     } label: {
                         Label("settings.notification".localized, systemImage: "bell.badge")
                     }
+
+                    NavigationLink {
+                        NotificationDashboardView(notificationService: NotificationService())
+                    } label: {
+                        Label("通知仪表盘", systemImage: "bell.badge.circle.fill")
+                    }
+
+                    NavigationLink {
+                        SyncDashboardView()
+                    } label: {
+                        Label("同步仪表盘", systemImage: "gauge.with.dots.needle.bottom.fill")
+                    }
                 }
                 .listStyle(.sidebar)
                 .frame(width: 200)

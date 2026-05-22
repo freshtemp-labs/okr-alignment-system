@@ -403,6 +403,50 @@ struct iOSSettingsView: View {
                             .foregroundStyle(.tertiaryText)
                     }
 
+                    // 通知 Section
+                    Section {
+                        NavigationLink {
+                            NotificationSettingsView(notificationService: NotificationService())
+                        } label: {
+                            HStack {
+                                Image(systemName: "bell.badge.fill")
+                                    .foregroundStyle(Color(red: 245/255, green: 158/255, blue: 11/255))
+                                Text("通知设置")
+                                    .foregroundStyle(.primaryText)
+                            }
+                        }
+
+                        NavigationLink {
+                            NotificationDashboardView(notificationService: NotificationService())
+                        } label: {
+                            HStack {
+                                Image(systemName: "bell.badge.circle.fill")
+                                    .foregroundStyle(Color(red: 245/255, green: 158/255, blue: 11/255))
+                                Text("通知仪表盘")
+                                    .foregroundStyle(.primaryText)
+                            }
+                        }
+
+                        NavigationLink {
+                            SyncDashboardView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "gauge.with.dots.needle.bottom.fill")
+                                    .foregroundStyle(Color(red: 59/255, green: 130/255, blue: 246/255))
+                                Text("同步仪表盘")
+                                    .foregroundStyle(.primaryText)
+                            }
+                        }
+                    } header: {
+                        Text("通知与同步")
+                            .font(.caption)
+                            .foregroundStyle(.secondaryText)
+                    } footer: {
+                        Text("通知仪表盘查看通知统计和历史，同步仪表盘查看同步健康度和趋势。")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiaryText)
+                    }
+
                     // 安全与加密 Section
                     Section {
                         NavigationLink {
