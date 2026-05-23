@@ -128,9 +128,9 @@ extension OKRNodeEntity {
     /// 是否为叶子节点（无子节点且类型为KR）
     /// 叶子节点是进度追踪的最小单位
     public var isLeaf: Bool {
-        // 由于Core Data没有直接存储children数组
-        // 需要通过查询来判断是否有子节点
-        nodeTypeEnum == .keyResult && parentId != nil
+        // 通过 children 关系检查是否有子节点
+        let childCount = children?.count ?? 0
+        return nodeTypeEnum == .keyResult && childCount == 0
     }
 }
 

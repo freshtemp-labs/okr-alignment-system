@@ -76,6 +76,9 @@ enum DomainToEntityMapper {
         entity.weight = domain.weight
         entity.version = Int64(domain.version)
         
+        // 同步 cycleId 属性与 cycle 关系
+        entity.cycleId = domain.cycleId
+        
         // 关联周期（如果指定了cycleId）
         if let cycleId = domain.cycleId {
             let cycleFetchRequest: NSFetchRequest<OKRCycleEntity> = OKRCycleEntity.fetchRequest()
@@ -89,6 +92,9 @@ enum DomainToEntityMapper {
         } else {
             entity.cycle = nil
         }
+        
+        // 同步 parentId 属性与 parent 关系
+        entity.parentId = domain.parentId
         
         // 关联父节点（如果指定了parentId）
         if let parentId = domain.parentId, parentId != domain.id {
