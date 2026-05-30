@@ -14,8 +14,8 @@ final class EntityMappingTests: XCTestCase {
 
     // MARK: - Properties
 
-    private var stack: CoreDataTestStack!
-    private var context: NSManagedObjectContext!
+    nonisolated(unsafe) private var stack: CoreDataTestStack!
+    nonisolated(unsafe) private var context: NSManagedObjectContext!
 
     // MARK: - Lifecycle
 

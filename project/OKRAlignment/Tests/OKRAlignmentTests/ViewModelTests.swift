@@ -15,8 +15,8 @@ final class ViewModelTests: XCTestCase {
 
     // MARK: - Properties
 
-    private var stack: CoreDataTestStack!
-    private var repository: CoreDataOKRRepository!
+    nonisolated(unsafe) private var stack: CoreDataTestStack!
+    nonisolated(unsafe) private var repository: CoreDataOKRRepository!
 
     // MARK: - Lifecycle
 
@@ -115,7 +115,8 @@ final class ViewModelTests: XCTestCase {
 
         // root has 2 children: KR1 (20/100=20%) and KR2 (60/100=60%)
         // Expected root progress: (20+60)/2 = 40%
-        XCTAssertEqual(vm.rootNode?.progress, 40.0, accuracy: 0.5,
+        let progress = vm.rootNode?.progress ?? 0
+        XCTAssertEqual(progress, 40.0, accuracy: 0.5,
             "Root progress should be the average of children")
     }
 
@@ -201,7 +202,7 @@ final class ViewModelTests: XCTestCase {
     }
 
     func test_validate_emptyTitle_returnsFalse() async throws {
-        var node = OKRNode(
+        let node = OKRNode(
             title: "",
             nodeType: .keyResult,
             scope: .personal,
@@ -298,8 +299,8 @@ final class ViewModelTests: XCTestCase {
 @MainActor
 final class CycleListViewModelTests: XCTestCase {
 
-    private var stack: CoreDataTestStack!
-    private var repository: CoreDataOKRRepository!
+    nonisolated(unsafe) private var stack: CoreDataTestStack!
+    nonisolated(unsafe) private var repository: CoreDataOKRRepository!
 
     override func setUp() {
         super.setUp()

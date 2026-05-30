@@ -31,7 +31,7 @@ final class NodeValidatorTests: XCTestCase {
     // MARK: - Properties
 
     /// 被测系统（System Under Test）
-    private var sut: CascadeEngineProtocol!
+    nonisolated(unsafe) private var sut: CascadeEngineProtocol!
 
     // MARK: - Setup & Teardown
 

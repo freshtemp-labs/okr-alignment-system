@@ -87,10 +87,7 @@ let package = Package(
             dependencies: [
                 .target(name: "OKRAlignmentShared")
             ],
-            path: "Tests/OKRAlignmentTests",
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
+            path: "Tests/OKRAlignmentTests"
         )
     ]
 )

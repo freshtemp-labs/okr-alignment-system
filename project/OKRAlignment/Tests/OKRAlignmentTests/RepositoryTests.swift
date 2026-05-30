@@ -15,8 +15,8 @@ final class RepositoryTests: XCTestCase {
 
     // MARK: - Properties
 
-    private var stack: CoreDataTestStack!
-    private var sut: CoreDataOKRRepository!
+    nonisolated(unsafe) private var stack: CoreDataTestStack!
+    nonisolated(unsafe) private var sut: CoreDataOKRRepository!
 
     // MARK: - Lifecycle
 
@@ -207,9 +207,12 @@ final class RepositoryTests: XCTestCase {
 
         try await sut.deleteNode(id: parent.id, cascade: true)
 
-        XCTAssertNil(try await sut.fetchNode(id: parent.id))
-        XCTAssertNil(try await sut.fetchNode(id: child1.id))
-        XCTAssertNil(try await sut.fetchNode(id: child2.id))
+        let fetchedParent = try await sut.fetchNode(id: parent.id)
+        let fetchedChild1 = try await sut.fetchNode(id: child1.id)
+        let fetchedChild2 = try await sut.fetchNode(id: child2.id)
+        XCTAssertNil(fetchedParent)
+        XCTAssertNil(fetchedChild1)
+        XCTAssertNil(fetchedChild2)
     }
 
     func test_deleteNode_noCascade_throwsWhenHasChildren() async throws {
@@ -256,7 +259,7 @@ final class RepositoryTests: XCTestCase {
         // Verify the leaf was persisted
         let fetched = try await sut.fetchNode(id: savedLeaf.id)
         XCTAssertNotNil(fetched)
-        XCTAssertEqual(fetched?.currentValue, 60, accuracy: 0.001)
+        XCTAssertEqual(fetched?.currentValue ?? 0, 60, accuracy: 0.001)
     }
 
     func test_updateLeafValue_notFound_throws() async throws {
