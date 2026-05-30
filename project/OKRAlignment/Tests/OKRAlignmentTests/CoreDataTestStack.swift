@@ -32,7 +32,7 @@ extension OKRCycleEntity {
 /// the parent–children and cycle–node **relationships** that the production mappers
 /// require.  Every test that needs CoreData should create a new instance so tests
 /// stay isolated.
-final class CoreDataTestStack {
+@MainActor final class CoreDataTestStack {
 
     let container: NSPersistentContainer
 

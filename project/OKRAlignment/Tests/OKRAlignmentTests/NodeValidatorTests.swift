@@ -92,19 +92,19 @@ final class NodeValidatorTests: XCTestCase {
             progress: 0,
             status: .inProgress,
             ownerName: "Alice",
-            createdAt: Date(),
-            updatedAt: Date(),
             sortOrder: 0,
             parentId: nil,
             children: [],
-            cycleId: UUID()
+            cycleId: UUID(),
+            createdAt: Date(),
+            updatedAt: Date()
         )
 
         // Act
         let errors = sut.validateNode(invalidNode)
 
         // Assert
-        XCTAssertTrue(errors.contains(.emptyTitle),
+        XCTAssertTrue(errors.contains(ValidationError.emptyTitle),
             "空标题应返回emptyTitle错误")
     }
 
@@ -127,19 +127,19 @@ final class NodeValidatorTests: XCTestCase {
             progress: 0,
             status: .inProgress,
             ownerName: "Alice",
-            createdAt: Date(),
-            updatedAt: Date(),
             sortOrder: 0,
             parentId: nil,
             children: [],
-            cycleId: UUID()
+            cycleId: UUID(),
+            createdAt: Date(),
+            updatedAt: Date()
         )
 
         // Act
         let errors = sut.validateNode(invalidNode)
 
         // Assert
-        XCTAssertTrue(errors.contains(.emptyTitle),
+        XCTAssertTrue(errors.contains(ValidationError.emptyTitle),
             "仅包含空白字符的标题应返回emptyTitle错误")
     }
 
@@ -165,7 +165,7 @@ final class NodeValidatorTests: XCTestCase {
         let errors = sut.validateNode(invalidNode)
 
         // Assert
-        XCTAssertTrue(errors.contains(.invalidTargetValue),
+        XCTAssertTrue(errors.contains(ValidationError.invalidTargetValue),
             "targetValue为0时应返回invalidTargetValue错误")
     }
 
@@ -189,7 +189,7 @@ final class NodeValidatorTests: XCTestCase {
         let errors = sut.validateNode(invalidNode)
 
         // Assert
-        XCTAssertTrue(errors.contains(.invalidTargetValue),
+        XCTAssertTrue(errors.contains(ValidationError.invalidTargetValue),
             "targetValue为负数时应返回invalidTargetValue错误")
     }
 
@@ -214,19 +214,19 @@ final class NodeValidatorTests: XCTestCase {
             progress: 0,
             status: .notStarted,
             ownerName: "Alice",
-            createdAt: Date(),
-            updatedAt: Date(),
             sortOrder: 0,
             parentId: nil,
             children: [],
-            cycleId: UUID()
+            cycleId: UUID(),
+            createdAt: Date(),
+            updatedAt: Date()
         )
 
         // Act
         let errors = sut.validateNode(invalidNode)
 
         // Assert
-        XCTAssertTrue(errors.contains(.leafMissingValues),
+        XCTAssertTrue(errors.contains(ValidationError.leafMissingValues),
             "叶子节点currentValue无效时应返回leafMissingValues错误")
     }
 
@@ -251,19 +251,19 @@ final class NodeValidatorTests: XCTestCase {
             progress: 0,
             status: .notStarted,
             ownerName: "Alice",
-            createdAt: Date(),
-            updatedAt: Date(),
             sortOrder: 0,
             parentId: nil,
             children: [],
-            cycleId: nil  // 未设置Cycle
+            cycleId: nil,
+            createdAt: Date(),
+            updatedAt: Date()  // 未设置Cycle
         )
 
         // Act
         let errors = sut.validateNode(invalidNode)
 
         // Assert
-        XCTAssertTrue(errors.contains(.cycleNotSet),
+        XCTAssertTrue(errors.contains(ValidationError.cycleNotSet),
             "Objective节点未设置cycleId时应返回cycleNotSet错误")
     }
 
@@ -288,23 +288,23 @@ final class NodeValidatorTests: XCTestCase {
             progress: 0,
             status: .notStarted,
             ownerName: "Alice",
-            createdAt: Date(),
-            updatedAt: Date(),
             sortOrder: 0,
             parentId: nil,
             children: [],
-            cycleId: nil          // 未设置Cycle
+            cycleId: nil,
+            createdAt: Date(),
+            updatedAt: Date()          // 未设置Cycle
         )
 
         // Act
         let errors = sut.validateNode(invalidNode)
 
         // Assert
-        XCTAssertTrue(errors.contains(.emptyTitle),
+        XCTAssertTrue(errors.contains(ValidationError.emptyTitle),
             "应返回emptyTitle错误")
-        XCTAssertTrue(errors.contains(.invalidTargetValue),
+        XCTAssertTrue(errors.contains(ValidationError.invalidTargetValue),
             "应返回invalidTargetValue错误")
-        XCTAssertTrue(errors.contains(.cycleNotSet),
+        XCTAssertTrue(errors.contains(ValidationError.cycleNotSet),
             "应返回cycleNotSet错误")
         XCTAssertGreaterThanOrEqual(errors.count, 3,
             "应返回至少3个错误")
@@ -333,7 +333,7 @@ final class NodeValidatorTests: XCTestCase {
         let errors = sut.validateNode(node)
 
         // Assert - NodeValidator不限制标题长度
-        XCTAssertFalse(errors.contains(.emptyTitle),
+        XCTAssertFalse(errors.contains(ValidationError.emptyTitle),
             "非空白的长标题不应触发emptyTitle错误")
     }
 
@@ -362,9 +362,9 @@ final class NodeValidatorTests: XCTestCase {
         let errors = sut.validateNode(node)
 
         // Assert - NodeValidator不检查currentValue范围
-        XCTAssertFalse(errors.contains(.invalidTargetValue),
+        XCTAssertFalse(errors.contains(ValidationError.invalidTargetValue),
             "targetValue=100是有效的")
-        XCTAssertFalse(errors.contains(.leafMissingValues),
+        XCTAssertFalse(errors.contains(ValidationError.leafMissingValues),
             "叶子节点有完整的数值")
     }
 

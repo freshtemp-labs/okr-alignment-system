@@ -150,12 +150,12 @@ enum TestDataFactory {
             progress: 0,
             status: current >= target ? .completed : (current > 0 ? .inProgress : .notStarted),
             ownerName: owner,
-            createdAt: Date(timeIntervalSince1970: 1700000000),
-            updatedAt: Date(timeIntervalSince1970: 1700000000),
             sortOrder: 0,
             parentId: nil,
             children: children,
-            cycleId: UUID()
+            cycleId: UUID(),
+            createdAt: Date(timeIntervalSince1970: 1700000000),
+            updatedAt: Date(timeIntervalSince1970: 1700000000)
         )
     }
 
@@ -187,12 +187,12 @@ enum TestDataFactory {
             progress: 0,
             status: .notStarted,
             ownerName: owner,
-            createdAt: Date(timeIntervalSince1970: 1700000000),
-            updatedAt: Date(timeIntervalSince1970: 1700000000),
             sortOrder: 0,
             parentId: nil,
             children: children,
-            cycleId: UUID()
+            cycleId: UUID(),
+            createdAt: Date(timeIntervalSince1970: 1700000000),
+            updatedAt: Date(timeIntervalSince1970: 1700000000)
         )
     }
 
@@ -223,12 +223,12 @@ enum TestDataFactory {
             progress: 0,
             status: .notStarted,
             ownerName: owner,
-            createdAt: Date(timeIntervalSince1970: 1700000000),
-            updatedAt: Date(timeIntervalSince1970: 1700000000),
             sortOrder: 0,
             parentId: nil,
             children: [],
-            cycleId: UUID()
+            cycleId: UUID(),
+            createdAt: Date(timeIntervalSince1970: 1700000000),
+            updatedAt: Date(timeIntervalSince1970: 1700000000)
         )
     }
 
@@ -261,12 +261,12 @@ enum TestDataFactory {
             progress: 0,
             status: .inProgress,
             ownerName: owner,
-            createdAt: Date(timeIntervalSince1970: 1700000000),
-            updatedAt: Date(timeIntervalSince1970: 1700000000),
             sortOrder: 0,
             parentId: nil,
             children: children,
-            cycleId: UUID()
+            cycleId: UUID(),
+            createdAt: Date(timeIntervalSince1970: 1700000000),
+            updatedAt: Date(timeIntervalSince1970: 1700000000)
         )
     }
 

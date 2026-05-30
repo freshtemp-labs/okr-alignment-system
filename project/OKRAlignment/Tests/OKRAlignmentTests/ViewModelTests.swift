@@ -210,7 +210,7 @@ final class ViewModelTests: XCTestCase {
         let result = vm.validate()
 
         XCTAssertFalse(result, "Empty title should fail validation")
-        XCTAssertTrue(vm.validationErrors.contains(.emptyTitle))
+        XCTAssertTrue(vm.validationErrors.contains(ValidationError.emptyTitle))
     }
 
     func test_validate_cycleNotSet_returnsFalse() {
@@ -227,7 +227,7 @@ final class ViewModelTests: XCTestCase {
         let result = vm.validate()
 
         XCTAssertFalse(result)
-        XCTAssertTrue(vm.validationErrors.contains(.cycleNotSet))
+        XCTAssertTrue(vm.validationErrors.contains(ValidationError.cycleNotSet))
     }
 
     func test_validateField_title_empty() {
@@ -242,7 +242,7 @@ final class ViewModelTests: XCTestCase {
         let vm = NodeEditViewModel(node: node, repository: repository)
 
         let error = vm.validateField("title")
-        XCTAssertEqual(error, .emptyTitle)
+        XCTAssertEqual(error, ValidationError.emptyTitle)
     }
 
     func test_validateField_targetValue_invalid() {
@@ -258,7 +258,7 @@ final class ViewModelTests: XCTestCase {
         let vm = NodeEditViewModel(node: node, repository: repository)
 
         let error = vm.validateField("targetValue")
-        XCTAssertEqual(error, .invalidTargetValue)
+        XCTAssertEqual(error, ValidationError.invalidTargetValue)
     }
 
     func test_save_createsNewNode() async throws {
