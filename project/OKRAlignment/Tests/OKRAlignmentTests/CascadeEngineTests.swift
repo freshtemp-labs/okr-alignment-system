@@ -38,11 +38,15 @@ final class CascadeEngineTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        sut = OKRCascadeEngine()
+        MainActor.assumeIsolated {
+            sut = OKRCascadeEngine()
+        }
     }
 
     override func tearDown() {
-        sut = nil
+        MainActor.assumeIsolated {
+            sut = nil
+        }
         super.tearDown()
     }
 

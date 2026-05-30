@@ -22,13 +22,17 @@ final class ViewModelTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        stack = CoreDataTestStack()
-        repository = CoreDataOKRRepository(container: stack.container)
+        MainActor.assumeIsolated {
+            stack = CoreDataTestStack()
+            repository = CoreDataOKRRepository(container: stack.container)
+        }
     }
 
     override func tearDown() {
-        repository = nil
-        stack = nil
+        MainActor.assumeIsolated {
+            repository = nil
+            stack = nil
+        }
         super.tearDown()
     }
 
@@ -299,13 +303,17 @@ final class CycleListViewModelTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        stack = CoreDataTestStack()
-        repository = CoreDataOKRRepository(container: stack.container)
+        MainActor.assumeIsolated {
+            stack = CoreDataTestStack()
+            repository = CoreDataOKRRepository(container: stack.container)
+        }
     }
 
     override func tearDown() {
-        repository = nil
-        stack = nil
+        MainActor.assumeIsolated {
+            repository = nil
+            stack = nil
+        }
         super.tearDown()
     }
 

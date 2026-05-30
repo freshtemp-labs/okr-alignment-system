@@ -22,13 +22,17 @@ final class RepositoryTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        stack = CoreDataTestStack()
-        sut = CoreDataOKRRepository(container: stack.container)
+        MainActor.assumeIsolated {
+            stack = CoreDataTestStack()
+            sut = CoreDataOKRRepository(container: stack.container)
+        }
     }
 
     override func tearDown() {
-        sut = nil
-        stack = nil
+        MainActor.assumeIsolated {
+            sut = nil
+            stack = nil
+        }
         super.tearDown()
     }
 

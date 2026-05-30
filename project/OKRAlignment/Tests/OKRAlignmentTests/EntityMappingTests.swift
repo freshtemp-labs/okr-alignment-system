@@ -21,13 +21,17 @@ final class EntityMappingTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        stack = CoreDataTestStack()
-        context = stack.container.viewContext
+        MainActor.assumeIsolated {
+            stack = CoreDataTestStack()
+            context = stack.container.viewContext
+        }
     }
 
     override func tearDown() {
-        context = nil
-        stack = nil
+        MainActor.assumeIsolated {
+            context = nil
+            stack = nil
+        }
         super.tearDown()
     }
 
