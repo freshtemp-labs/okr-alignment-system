@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build & Test
+    name: Build & Test (macOS)
     runs-on: macos-15
 
     defaults:
@@ -27,14 +27,54 @@ jobs:
         run: |
           XCODE_PATH=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
           if [ -z "$XCODE_PATH" ]; then
-            XCODE_PATH=$(xcode-select -p | sed 's|/Contents/Developer||')
+            XCODE_PATH=$(ls -d /Applications/Xcode.app 2>/dev/null)
           fi
-          sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
-          echo "Xcode: $($XCODE_PATH/Contents/Developer/usr/bin/xcodebuild -version)"
-          swift --version
+          if [ -z "$XCODE_PATH" ]; then
+            echo "::warning::No Xcode found, using default"
+            swift --version
+          else
+            sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+            echo "Xcode: $(xcodebuild -version)"
+            swift --version
+          fi
 
       - name: Swift Build
         run: swift build
 
-      - name: Swift Test
-        run: swift test
+      - name: Swift Test (with verbose output)
+        run: swift test --verbose 2>&1
+
+  build-and-test-ios:
+    name: Build & Test (iOS Simulator)
+    runs-on: macos-15
+
+    defaults:
+      run:
+        working-directory: project/OKRAlignment
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE_PATH" ]; then
+            XCODE_PATH=$(ls -d /Applications/Xcode.app 2>/dev/null)
+          fi
+          sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+          echo "Xcode: $(xcodebuild -version)"
+
+      - name: Resolve Package Dependencies
+        run: xcodebuild -resolvePackageDependencies
+
+      - name: Build & Test on iOS Simulator
+        run: |
+          xcodebuild test \
+            -scheme OKRAlignment \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -derivedDataPath DerivedData \
+            -enableCodeCoverage YES \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty && exit ${PIPESTATUS[0]}
