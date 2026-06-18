@@ -82,7 +82,7 @@ public struct OKRNodeCard: View {
     
     /// The card's background color.
     private var cardBackground: Color {
-        Color(red: 30/255, green: 41/255, blue: 59/255)
+        .appBackgroundSecondary
     }
     
     /// The shadow color for hover state.
@@ -110,6 +110,16 @@ public struct OKRNodeCard: View {
         case .cancelled: return "Cancelled"
         }
     }
+
+    /// Accessibility hint based on node state.
+    private var accessibilityHint: String {
+        if node.children.isEmpty {
+            return node.isLeaf ? "Leaf key result. Adjust progress using controls." : ""
+        }
+        return isExpanded
+            ? "Double tap to collapse \(node.children.count) children"
+            : "Double tap to expand \(node.children.count) children"
+    }
     
     // MARK: - Body
     
@@ -132,7 +142,7 @@ public struct OKRNodeCard: View {
                 // Title
                 Text(node.title)
                     .font(.system(size: 14, weight: .semibold, design: .default))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.primaryText)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -148,13 +158,13 @@ public struct OKRNodeCard: View {
                 HStack {
                     Text(node.valueDisplayString)
                         .font(.system(size: 11, weight: .medium, design: .default))
-                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                        .foregroundStyle(Color.secondaryText)
                     
                     Spacer()
                     
                     Text(node.progressPercentage)
                         .font(.system(size: 11, weight: .bold, design: .default))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.primaryText)
                 }
                 
                 // Leaf controls (only for leaf KR nodes, visible on hover)
@@ -177,7 +187,7 @@ public struct OKRNodeCard: View {
                         Spacer()
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                            .foregroundStyle(Color.tertiaryText)
                         Spacer()
                     }
                     .padding(.top, 2)
@@ -191,7 +201,7 @@ public struct OKRNodeCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                .stroke(Color.cardBorder, lineWidth: 1)
         )
         // Hover effects
         .shadow(
@@ -220,11 +230,7 @@ public struct OKRNodeCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(nodeTypeDescription): \(node.title)")
         .accessibilityValue("\(scopeDescription) scope, \(node.progressPercentage) progress, \(statusDescription), owner \(node.ownerName)")
-        .accessibilityHint(
-            node.children.isEmpty
-                ? (node.isLeaf ? "Leaf key result. Adjust progress using controls." : "")
-                : (isExpanded ? "Double tap to collapse \(node.children.count) children" : "Double tap to expand \(node.children.count) children")
-        )
+        .accessibilityHint(accessibilityHint)
         .accessibilityAddTraits(.isButton)
         #if os(macOS)
         .accessibilityAction(named: "Expand") {
