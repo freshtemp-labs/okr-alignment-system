@@ -601,22 +601,6 @@ struct iOSSettingsView: View {
         }
     }
 
-    // MARK: - 外观设置行
-
-    /// 外观设置选项行
-    private var appearanceRow: some View {
-        HStack {
-            Image(systemName: "moon.fill")
-                .foregroundStyle(Color(red: 139/255, green: 92/255, blue: 246/255))
-            Text("深色模式")
-                .foregroundStyle(.primaryText)
-            Spacer()
-            Text("始终开启")
-                .font(.caption)
-                .foregroundStyle(.secondaryText)
-        }
-    }
-
     // MARK: - 辅助属性
 
     /// 应用版本号

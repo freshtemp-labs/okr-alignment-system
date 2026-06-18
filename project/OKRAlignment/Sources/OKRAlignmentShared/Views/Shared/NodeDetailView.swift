@@ -35,8 +35,8 @@ public struct NodeDetailView: View {
 
     // MARK: - Constants
 
-    private let sectionLabelColor = Color(red: 100/255, green: 116/255, blue: 139/255)
-    private let textColor = Color(red: 203/255, green: 213/255, blue: 225/255)
+    private let sectionLabelColor = Color.secondaryText
+    private let textColor = Color.primaryText
 
     // MARK: - Initialization
 
@@ -79,7 +79,7 @@ public struct NodeDetailView: View {
             .padding(.bottom, 12)
 
             Divider()
-                .background(Color.white.opacity(0.08))
+                .background(Color.divider)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -93,12 +93,12 @@ public struct NodeDetailView: View {
                     // Title
                     Text(node.title)
                         .font(.system(size: 18, weight: .bold, design: .default))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.primaryText)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Divider()
-                        .background(Color.white.opacity(0.1))
+                        .background(Color.divider)
 
                     // Description
                     if let desc = node.nodeDescription, !desc.isEmpty {
@@ -110,7 +110,7 @@ public struct NodeDetailView: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         Divider()
-                            .background(Color.white.opacity(0.1))
+                            .background(Color.divider)
                     }
 
                     // Owner
@@ -122,11 +122,11 @@ public struct NodeDetailView: View {
                             .accessibilityHidden(true)
                         Text(node.ownerName)
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color.primaryText)
                     }
 
                     Divider()
-                        .background(Color.white.opacity(0.1))
+                        .background(Color.divider)
 
                     // Progress section with color indicator
                     sectionHeader("Progress")
@@ -144,13 +144,13 @@ public struct NodeDetailView: View {
                         Spacer()
                         Text(node.progressPercentage)
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color.primaryText)
                     }
 
                     // Children progress list
                     if !node.children.isEmpty {
                         Divider()
-                            .background(Color.white.opacity(0.1))
+                            .background(Color.divider)
 
                         sectionHeader("Children (\(node.children.count))")
 
@@ -163,7 +163,7 @@ public struct NodeDetailView: View {
 
                     // Details grid
                     Divider()
-                        .background(Color.white.opacity(0.1))
+                        .background(Color.divider)
 
                     sectionHeader("Details")
 
@@ -179,7 +179,7 @@ public struct NodeDetailView: View {
 
                     // Timestamps
                     Divider()
-                        .background(Color.white.opacity(0.1))
+                        .background(Color.divider)
 
                     sectionHeader("Timestamps")
 
@@ -210,7 +210,7 @@ public struct NodeDetailView: View {
 
                     // 评论区域
                     Divider()
-                        .background(Color.white.opacity(0.1))
+                        .background(Color.divider)
 
                     CommentListView(
                         nodeId: node.id,
@@ -227,7 +227,7 @@ public struct NodeDetailView: View {
             }
 
             Divider()
-                .background(Color.white.opacity(0.08))
+                .background(Color.divider)
 
             // Edit button
             Button {
@@ -280,8 +280,8 @@ public struct NodeDetailView: View {
                     .lineLimit(1)
                 Spacer()
                 Text(child.progressPercentage)
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color.primaryText)
             }
 
             AnimatedProgressIndicator(
@@ -291,7 +291,7 @@ public struct NodeDetailView: View {
             )
         }
         .padding(10)
-        .background(Color.white.opacity(0.04))
+        .background(Color.cardBackground.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(child.title), \(child.progressPercentage) complete")
@@ -341,11 +341,11 @@ struct DetailItem: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title.uppercased())
                 .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
+                .foregroundStyle(Color.secondaryText)
                 .tracking(0.5)
             Text(value)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.primaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
